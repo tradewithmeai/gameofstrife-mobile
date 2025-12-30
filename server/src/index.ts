@@ -3,10 +3,9 @@ import cors from '@fastify/cors'
 import fastifySocketIO from 'fastify-socket.io'
 import { Socket } from 'socket.io'
 import { RoomManager } from './services/roomManager.js'
-import { Matchmaker } from './services/matchmaker.js'
 import { MatchService } from './services/matchService.js'
 import { GameRegistry } from './services/gameRegistry.js'
-import { ClientToServerEvents, ServerToClientEvents, Room } from './types/room.js'
+import { ClientToServerEvents, ServerToClientEvents } from './types/room.js'
 
 // Game of Strife Mobile Backend
 console.log('='.repeat(50))
@@ -19,7 +18,6 @@ export const NAMESPACE = '/game'
 
 // Create global service instances
 const roomManager = new RoomManager()
-const matchmaker = new Matchmaker()
 const matchService = new MatchService() // Auto-loads GameOfStrifeEngine
 
 // Track emitted results to ensure exactly-once emission
@@ -67,11 +65,23 @@ const gameNamespace = fastify.io.of(NAMESPACE)
 gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   console.log(`Client connected: ${socket.id}`)
 
+  socket.emit('welcome', 'Connected to Game of Strife')
+
   // Create room
-  socket.on('createRoom', ({ isPublic, gameSettings }) => {
-    const room = roomManager.createRoom(socket.id, isPublic, gameSettings)
+  socket.on('createRoom', ({ isPublic, settings }) => {
+    const room = roomManager.createRoom(socket.id, isPublic, settings)
     socket.join(room.id)
-    socket.emit('roomCreated', room)
+    socket.emit('roomJoined', {
+      id: room.id,
+      code: room.code,
+      status: room.status,
+      players: room.players.map(p => ({ id: p.id, joinedAt: p.joinedAt, isReady: p.isReady })),
+      maxPlayers: room.maxPlayers,
+      createdAt: room.createdAt,
+      lastActivity: room.lastActivity,
+      isPublic: room.isPublic,
+      gameSettings: room.gameSettings
+    })
     console.log(`Room created: ${room.code} by ${socket.id}`)
   })
 
@@ -79,12 +89,28 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
   socket.on('joinRoom', (code: string) => {
     const room = roomManager.joinRoom(code, socket.id)
     if (!room) {
-      socket.emit('error', { message: 'Room not found or full' })
+      socket.emit('error', 'Room not found or full')
       return
     }
 
     socket.join(room.id)
-    gameNamespace.to(room.id).emit('roomUpdated', room)
+    const roomData = {
+      id: room.id,
+      code: room.code,
+      status: room.status,
+      players: room.players.map(p => ({ id: p.id, joinedAt: p.joinedAt, isReady: p.isReady })),
+      maxPlayers: room.maxPlayers,
+      createdAt: room.createdAt,
+      lastActivity: room.lastActivity,
+      isPublic: room.isPublic,
+      gameSettings: room.gameSettings
+    }
+
+    socket.emit('roomJoined', roomData)
+    gameNamespace.to(room.id).emit('roomUpdate', {
+      room: roomData,
+      type: 'player_joined'
+    })
 
     // Start match when 2 players
     if (room.players.length === 2) {
@@ -92,13 +118,10 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
       const matchState = matchService.getMatch(matchId)
 
       if (matchState) {
-        gameNamespace.to(room.id).emit('matchStarted', {
-          matchId,
-          matchState,
-          playerSeats: {
-            [room.players[0].id]: 'P1',
-            [room.players[1].id]: 'P2'
-          }
+        gameNamespace.to(room.id).emit('matchStart', {
+          roomId: room.id,
+          players: room.players,
+          startedAt: new Date()
         })
       }
     }
@@ -107,12 +130,23 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
   // Get public rooms
   socket.on('getPublicRooms', () => {
     const rooms = roomManager.getPublicRooms()
-    socket.emit('publicRooms', rooms)
+    const roomData = rooms.map(r => ({
+      id: r.id,
+      code: r.code,
+      status: r.status,
+      players: r.players.map(p => ({ id: p.id, joinedAt: p.joinedAt, isReady: p.isReady })),
+      maxPlayers: r.maxPlayers,
+      createdAt: r.createdAt,
+      lastActivity: r.lastActivity,
+      isPublic: r.isPublic,
+      gameSettings: r.gameSettings
+    }))
+    socket.emit('publicRooms', roomData)
   })
 
   // Claim square
-  socket.on('claimSquare', ({ matchId, squareId, selectionId, superpowerType }) => {
-    const result = matchService.claimSquare({
+  socket.on('claimSquare', async ({ matchId, squareId, selectionId, superpowerType }) => {
+    const result = await matchService.claimSquare({
       matchId,
       squareId,
       selectionId,
@@ -120,60 +154,69 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
       superpowerType
     })
 
-    const roomId = GameRegistry.getRoomIdByMatchId(matchId)
+    const roomId = GameRegistry.getRoomIdForMatch(matchId)
     if (!roomId) return
 
     if (result.success && result.matchState) {
-      gameNamespace.to(roomId).emit('stateSync', result.matchState)
+      gameNamespace.to(roomId).emit('squareClaimed', {
+        matchId,
+        move: { squareId, playerId: socket.id, superpowerType },
+        matchState: result.matchState,
+        version: result.matchState.version
+      })
 
       // Check for game end
       if (result.matchState.status === 'finished' && result.matchState.winner) {
         const resultKey = `${matchId}:${result.matchState.winner}`
         if (!emittedResults.has(resultKey)) {
           emittedResults.add(resultKey)
-          gameNamespace.to(roomId).emit('result', {
+          gameNamespace.to(roomId).emit('gameResult', {
+            matchId,
             winner: result.matchState.winner,
             winningLine: result.matchState.winningLine || null
           })
         }
       }
     } else {
-      socket.emit('claimRejected', { reason: result.reason })
+      socket.emit('claimRejected', {
+        matchId,
+        squareId,
+        reason: result.reason || 'Unknown error',
+        selectionId
+      })
     }
   })
 
   // Request rematch
-  socket.on('requestRematch', ({ matchId }) => {
-    matchService.requestRematch({ matchId, playerId: socket.id })
-    const roomId = GameRegistry.getRoomIdByMatchId(matchId)
+  socket.on('rematch', async ({ matchId }) => {
+    const roomId = GameRegistry.getRoomIdForMatch(matchId)
     if (!roomId) return
 
-    const oldMatch = matchService.getMatch(matchId)
-    if (!oldMatch) return
+    const room = roomManager.getRoomById(roomId)
+    if (!room || room.players.length !== 2) return
 
-    gameNamespace.to(roomId).emit('rematchRequested', {
-      playerId: socket.id,
-      seat: oldMatch.playerSeats.get(socket.id)
-    })
+    // Create new match
+    const newMatchId = matchService.createMatch(roomId, room.players.map(p => p.id), room.gameSettings)
+    const newMatch = matchService.getMatch(newMatchId)
 
-    // Check if both requested
-    const newMatchId = matchService.checkRematchReady(matchId)
-    if (newMatchId) {
-      const newMatch = matchService.getMatch(newMatchId)
-      if (newMatch) {
-        gameNamespace.to(roomId).emit('matchStarted', {
-          matchId: newMatchId,
-          matchState: newMatch,
-          playerSeats: Object.fromEntries(newMatch.playerSeats)
-        })
-      }
+    if (newMatch) {
+      gameNamespace.to(roomId).emit('matchStart', {
+        roomId: room.id,
+        players: room.players,
+        startedAt: new Date()
+      })
     }
+  })
+
+  // Ping/Pong
+  socket.on('ping', () => {
+    socket.emit('pong')
   })
 
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`)
-    roomManager.handleDisconnect(socket.id)
+    roomManager.leaveAllRooms(socket.id)
   })
 })
 
