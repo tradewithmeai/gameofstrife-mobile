@@ -1,0 +1,504 @@
+// Main Game of Strife component for React Native
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Button, Card, Portal, Modal } from 'react-native-paper';
+import { GameOfStrifeBoard } from './GameBoard';
+import { GameOfStrifeHUD } from './GameHUD';
+import {
+  GameStage,
+  DEFAULT_GAME_CONFIG,
+  getBoardFromFlat,
+  createEmptyBoard,
+  Cell,
+  simulateOneGeneration,
+  boardsEqual,
+  countLivingCells,
+  DEFAULT_CONWAY_RULES
+} from '../utils/gameTypes';
+import { useSocketStore } from '../stores/socketStore';
+
+interface GameOfStrifeProps {
+  matchState: any;
+  mySeat?: 'P1' | 'P2' | null;
+  isMyTurn?: boolean;
+  onAction: (position: number, superpowerType?: number) => void;
+  onRematch: () => void;
+}
+
+export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
+  matchState,
+  mySeat,
+  isMyTurn,
+  onAction,
+  onRematch
+}) => {
+  // Calculate isFinished from match state
+  const isFinished = Boolean(matchState?.winner);
+
+  // Socket store for additional state
+  const {
+    currentWindowId,
+    windowDeadline,
+    pendingClaims,
+    pendingSimulClaims,
+    rematchPending,
+    rematchRequesterSeat
+  } = useSocketStore();
+
+  // Simulation state
+  const [simulationBoard, setSimulationBoard] = useState<Cell[][] | null>(null);
+  const [simulationGeneration, setSimulationGeneration] = useState(0);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationComplete, setSimulationComplete] = useState(false);
+  const [finalScores, setFinalScores] = useState<{player0: number, player1: number} | null>(null);
+  const simulationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasStartedSimulation = useRef(false);
+  const placementBoardRef = useRef<Cell[][] | null>(null);
+
+  // Convert match state to Game of Strife format
+  const gameData = useMemo(() => {
+    if (!matchState) {
+      return {
+        board: createEmptyBoard(DEFAULT_GAME_CONFIG.boardSize),
+        stage: 'waiting' as GameStage,
+        generation: 0,
+        playerTokens: {
+          player0: DEFAULT_GAME_CONFIG.tokensPerPlayer,
+          player1: DEFAULT_GAME_CONFIG.tokensPerPlayer
+        },
+        boardSize: DEFAULT_GAME_CONFIG.boardSize,
+        conwayRules: DEFAULT_CONWAY_RULES,
+        settings: null
+      };
+    }
+
+    // Extract Game of Strife metadata if available
+    const metadata = (matchState as any).metadata || {};
+    console.log('[GameOfStrife] Metadata from matchState:', JSON.stringify(metadata));
+
+    // Determine board size
+    const boardSize = metadata.boardSize || Math.sqrt(matchState.board.length);
+
+    // Use fullBoard from metadata if available (preserves superpowerType and memory)
+    // Otherwise fall back to converting from flat board
+    const board = metadata.fullBoard || getBoardFromFlat(matchState.board, boardSize);
+    console.log('[GameOfStrife] Using fullBoard from metadata:', !!metadata.fullBoard);
+
+    // Extract Conway rules from metadata (set by backend from game settings)
+    const conwayRules = metadata.conwayRules || DEFAULT_CONWAY_RULES;
+    console.log('[GameOfStrife] Using Conway rules:', conwayRules);
+
+    // Extract game settings from metadata (for superpower configuration)
+    const settings = metadata.settings || null;
+    console.log('[GameOfStrife] Using game settings:', settings);
+
+    // Determine game stage - prefer metadata.stage if available
+    let stage: GameStage = 'placement';
+    if (metadata.stage) {
+      // Use stage from backend metadata (most reliable)
+      stage = metadata.stage;
+      console.log('[GameOfStrife] Using stage from metadata:', stage);
+    } else if (isFinished) {
+      stage = 'finished';
+      console.log('[GameOfStrife] Using stage from isFinished:', stage);
+    } else if (matchState.currentTurn === null) {
+      // When no current turn, likely in simulation phase
+      stage = 'simulation';
+      console.log('[GameOfStrife] Using stage from currentTurn=null:', stage);
+    }
+
+    // IMPORTANT: Save placement board BEFORE transitioning to simulation/finished
+    // This must happen in useMemo so it runs synchronously before useEffect
+    if (stage === 'placement' && board) {
+      // Save a deep copy of the placement board
+      placementBoardRef.current = board.map((row: Cell[]) => row.map((cell: Cell) => ({ ...cell })));
+      console.log('[GameOfStrife] Saved placement board in useMemo');
+    }
+
+    return {
+      board,
+      stage,
+      generation: metadata.generation || 0,
+      playerTokens: metadata.playerTokens || {
+        player0: DEFAULT_GAME_CONFIG.tokensPerPlayer,
+        player1: DEFAULT_GAME_CONFIG.tokensPerPlayer
+      },
+      boardSize,
+      conwayRules,
+      settings
+    };
+  }, [matchState, isFinished]);
+
+  // Run Conway's simulation when entering simulation phase
+  useEffect(() => {
+    console.log('[GameOfStrife] useEffect check:', {
+      stage: gameData.stage,
+      hasStarted: hasStartedSimulation.current,
+      hasBoard: !!gameData.board,
+      hasPlacementBoard: !!placementBoardRef.current,
+      generation: gameData.generation
+    });
+
+    // Check if we should start simulation
+    if ((gameData.stage === 'simulation' || gameData.stage === 'finished') && !hasStartedSimulation.current && placementBoardRef.current) {
+      console.log('[GameOfStrife] Starting simulation animation from placement board!');
+      hasStartedSimulation.current = true;
+      setIsSimulating(true);
+
+      // Start simulation from the saved placement board (not the current board which may be simulated)
+      let currentBoard = placementBoardRef.current.map(row => row.map(cell => ({ ...cell })));
+      let generation = 0;
+      const maxGenerations = 100;
+      const simulationSpeed = 200; // ms per generation
+
+      const runNextGeneration = () => {
+        console.log(`[GameOfStrife] Running generation ${generation + 1}`);
+
+        // Simulate one generation using Conway rules from game settings
+        const nextBoard = simulateOneGeneration(currentBoard, gameData.conwayRules);
+        generation++;
+
+        // Count cells for logging
+        const player0Count = countLivingCells(nextBoard, 0);
+        const player1Count = countLivingCells(nextBoard, 1);
+        console.log(`[GameOfStrife] Generation ${generation}: P1=${player0Count} cells, P2=${player1Count} cells`);
+
+        // Update state
+        setSimulationBoard(nextBoard);
+        setSimulationGeneration(generation);
+
+        // Check if simulation should stop
+        const isStable = boardsEqual(currentBoard, nextBoard);
+        const reachedMaxGenerations = generation >= maxGenerations;
+
+        if (isStable || reachedMaxGenerations) {
+          // Simulation complete
+          console.log(`[GameOfStrife] Simulation complete! Reason: ${isStable ? 'stable' : 'max generations'}`);
+          const scores = {
+            player0: countLivingCells(nextBoard, 0),
+            player1: countLivingCells(nextBoard, 1)
+          };
+          console.log(`[GameOfStrife] Final scores: P1=${scores.player0}, P2=${scores.player1}`);
+          setFinalScores(scores);
+          setIsSimulating(false);
+          setSimulationComplete(true);
+        } else {
+          // Continue simulation
+          console.log(`[GameOfStrife] Scheduling next generation in ${simulationSpeed}ms`);
+          currentBoard = nextBoard;
+          simulationTimerRef.current = setTimeout(runNextGeneration, simulationSpeed);
+        }
+      };
+
+      // Start the simulation after a brief delay
+      console.log('[GameOfStrife] Scheduling first generation in 500ms');
+      simulationTimerRef.current = setTimeout(() => {
+        console.log('[GameOfStrife] First timeout fired!');
+        try {
+          runNextGeneration();
+        } catch (error) {
+          console.error('[GameOfStrife] Error in runNextGeneration:', error);
+        }
+      }, 500);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (simulationTimerRef.current) {
+        clearTimeout(simulationTimerRef.current);
+      }
+    };
+  }, [gameData.stage]);
+
+  // Reset simulation state when match changes
+  useEffect(() => {
+    if (matchState?.status === 'active' && matchState?.currentTurn !== null) {
+      console.log('[GameOfStrife] Resetting simulation state for new match');
+      hasStartedSimulation.current = false;
+      placementBoardRef.current = null;
+      setIsSimulating(false);
+      setSimulationComplete(false);
+      setSimulationBoard(null);
+      setSimulationGeneration(0);
+      setFinalScores(null);
+    }
+  }, [matchState?.id]);
+
+  // Handle game actions from the board
+  const handleGameAction = useCallback((action: any) => {
+    if (!matchState || !mySeat) return;
+
+    switch (action.type) {
+      case 'PLACE_TOKEN':
+        // For Game of Strife, randomly assign superpower based on game settings
+        // Extract settings from gameData (sent from backend)
+        const superpowerPercentage = gameData.settings?.superpowerPercentage ?? 20;
+        const enabledSuperpowers = gameData.settings?.enabledSuperpowers ?? [1, 2, 3, 4, 5, 6, 7];
+
+        console.log('[GameOfStrife] Superpower config:', { superpowerPercentage, enabledSuperpowers });
+
+        // Randomly assign superpower based on settings
+        let superpowerType = 0; // Normal cell by default
+        if (enabledSuperpowers.length > 0 && Math.random() < (superpowerPercentage / 100)) {
+          const randomIndex = Math.floor(Math.random() * enabledSuperpowers.length);
+          superpowerType = enabledSuperpowers[randomIndex];
+        }
+
+        // Convert to socket claim square action with superpowerType
+        onAction(action.payload.position, superpowerType);
+        break;
+
+      default:
+        // For other actions (tic-tac-toe), don't pass superpowerType
+        if (action.payload?.squareId !== undefined) {
+          onAction(action.payload.squareId);
+        } else if (action.payload?.position !== undefined) {
+          onAction(action.payload.position);
+        }
+    }
+  }, [matchState, mySeat, onAction, gameData]);
+
+  // Handle rematch
+  const handleRematch = useCallback(() => {
+    onRematch();
+  }, [onRematch]);
+
+  if (!matchState) {
+    return (
+      <View style={styles.container}>
+        <Text variant="bodyLarge" style={styles.textGray}>No active match</Text>
+      </View>
+    );
+  }
+
+  const isPlacementStage = gameData.stage === 'placement';
+
+  // Use simulation board when simulating, otherwise use game board
+  const displayBoard = simulationBoard || gameData.board;
+  const displayGeneration = isSimulating ? simulationGeneration : gameData.generation;
+
+  return (
+    <ScrollView style={styles.scrollContainer}>
+      <View style={styles.container}>
+        {/* Game HUD */}
+        <GameOfStrifeHUD
+          board={displayBoard}
+          stage={gameData.stage}
+          generation={displayGeneration}
+          playerTokens={gameData.playerTokens}
+          matchState={matchState}
+          mySeat={mySeat}
+          isMyTurn={isMyTurn}
+          isFinished={isFinished}
+          currentWindowId={currentWindowId || undefined}
+          windowDeadline={windowDeadline || undefined}
+          showDebugInfo={false}
+          conwayRules={gameData.conwayRules}
+          settings={gameData.settings}
+        />
+
+        {/* Game Board */}
+        <GameOfStrifeBoard
+          board={displayBoard}
+          stage={gameData.stage}
+          boardSize={gameData.boardSize}
+          isPlacementStage={isPlacementStage}
+          isMyTurn={isMyTurn || false}
+          isFinished={isFinished}
+          onGameAction={handleGameAction}
+        />
+
+        {/* Additional Game Info */}
+        {isSimulating && (
+          <Card style={styles.simulatingCard}>
+            <Card.Content style={styles.centerContent}>
+              <Text variant="titleMedium" style={styles.textPurple}>
+                🧬 Conway's Game of Life simulation in progress...
+              </Text>
+              <Text variant="bodySmall" style={styles.textPurpleLight}>
+                Generation {simulationGeneration}
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Conway's Game of Life Rules Info */}
+        {gameData.stage === 'placement' && (
+          <Card style={styles.rulesCard}>
+            <Card.Content>
+              <Text variant="titleSmall" style={styles.textWhite}>Conway's Game of Life Rules:</Text>
+              <Text variant="bodySmall" style={styles.textGray}>
+                • Live cells with {gameData.conwayRules.survivalRules.join(', ')} neighbor{gameData.conwayRules.survivalRules.length > 1 ? 's' : ''} survive
+              </Text>
+              <Text variant="bodySmall" style={styles.textGray}>
+                • Dead cells with {gameData.conwayRules.birthRules.join(', ')} neighbor{gameData.conwayRules.birthRules.length > 1 ? 's' : ''} become alive
+              </Text>
+              <Text variant="bodySmall" style={styles.textGray}>
+                • All other cells die or stay dead
+              </Text>
+              <Text variant="bodySmall" style={[styles.textYellow, styles.marginTop]}>
+                Place your tokens strategically!
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Pending Claims Indicator */}
+        {(pendingClaims.size > 0 || pendingSimulClaims.size > 0) && (
+          <Card style={styles.pendingCard}>
+            <Card.Content>
+              <Text variant="bodySmall" style={styles.textYellow}>
+                ⏳ Processing token placement...
+              </Text>
+            </Card.Content>
+          </Card>
+        )}
+
+        {/* Simulation Results Modal */}
+        <Portal>
+          <Modal
+            visible={simulationComplete && !!finalScores && !!matchState?.winner}
+            onDismiss={() => {}}
+            contentContainerStyle={styles.modal}
+          >
+            <Text variant="displaySmall" style={styles.centerText}>🏆</Text>
+            <Text variant="headlineLarge" style={[styles.textWhite, styles.centerText, styles.marginBottom]}>
+              Simulation Complete!
+            </Text>
+            <Text variant="headlineMedium" style={[styles.centerText, styles.marginBottom]}>
+              {matchState?.winner === 'draw' ? (
+                <Text style={styles.textYellow}>It's a Draw!</Text>
+              ) : matchState?.winner === mySeat ? (
+                <Text style={styles.textGreen}>You Win!</Text>
+              ) : (
+                <Text style={styles.textRed}>You Lose</Text>
+              )}
+            </Text>
+
+            {finalScores && (
+              <View style={styles.scoresContainer}>
+                <View style={styles.scoreRow}>
+                  <Text variant="titleMedium" style={styles.textBlue}>Player 1 (Blue):</Text>
+                  <Text variant="titleMedium" style={styles.textWhite}>{finalScores.player0} cells</Text>
+                </View>
+                <View style={styles.scoreRow}>
+                  <Text variant="titleMedium" style={styles.textGreen}>Player 2 (Green):</Text>
+                  <Text variant="titleMedium" style={styles.textWhite}>{finalScores.player1} cells</Text>
+                </View>
+              </View>
+            )}
+
+            <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
+              Simulation ran for {simulationGeneration} generations
+            </Text>
+
+            {/* Rematch Status Indicator */}
+            {rematchPending && rematchRequesterSeat && (
+              <Card style={[styles.rematchCard, styles.marginBottom]}>
+                <Card.Content>
+                  {rematchRequesterSeat === mySeat ? (
+                    <Text variant="bodySmall" style={styles.textBlue}>
+                      ⏳ Waiting for opponent to accept rematch...
+                    </Text>
+                  ) : (
+                    <Text variant="bodySmall" style={styles.textGreen}>
+                      🎮 Opponent wants a rematch! Click Play Again to accept
+                    </Text>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
+
+            <Button mode="contained" onPress={handleRematch} style={styles.rematchButton}>
+              Play Again
+            </Button>
+          </Modal>
+        </Portal>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#111827',
+  },
+  container: {
+    flex: 1,
+    padding: 16,
+    gap: 16,
+  },
+  centerContent: {
+    alignItems: 'center',
+  },
+  centerText: {
+    textAlign: 'center',
+  },
+  simulatingCard: {
+    backgroundColor: '#581C87',
+  },
+  rulesCard: {
+    backgroundColor: '#1F2937',
+  },
+  pendingCard: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FBBF24',
+    borderWidth: 1,
+  },
+  modal: {
+    backgroundColor: '#1F2937',
+    padding: 24,
+    margin: 20,
+    borderRadius: 12,
+    borderWidth: 4,
+    borderColor: '#7C3AED',
+  },
+  scoresContainer: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rematchCard: {
+    backgroundColor: '#1E3A8A',
+    borderColor: '#3B82F6',
+    borderWidth: 2,
+  },
+  rematchButton: {
+    backgroundColor: '#7C3AED',
+  },
+  marginTop: {
+    marginTop: 8,
+  },
+  marginBottom: {
+    marginBottom: 16,
+  },
+  textWhite: {
+    color: '#FFFFFF',
+  },
+  textGray: {
+    color: '#9CA3AF',
+  },
+  textBlue: {
+    color: '#3B82F6',
+  },
+  textGreen: {
+    color: '#10B981',
+  },
+  textYellow: {
+    color: '#FBBF24',
+  },
+  textRed: {
+    color: '#EF4444',
+  },
+  textPurple: {
+    color: '#C4B5FD',
+  },
+  textPurpleLight: {
+    color: '#DDD6FE',
+  },
+});

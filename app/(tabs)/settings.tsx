@@ -1,0 +1,300 @@
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Card, Button, TextInput, Chip } from 'react-native-paper';
+import { useState } from 'react';
+import { useSettingsStore, DEFAULT_GAME_SETTINGS } from '../../stores/settingsStore';
+
+export default function SettingsScreen() {
+  const { settings, setSettings, resetToDefaults, isLoading } = useSettingsStore();
+
+  const [boardSize, setBoardSize] = useState(settings.boardSize);
+  const [tokensPerPlayer, setTokensPerPlayer] = useState(settings.tokensPerPlayer);
+  const [birthRules, setBirthRules] = useState(settings.birthRules.join(','));
+  const [survivalRules, setSurvivalRules] = useState(settings.survivalRules.join(','));
+  const [superpowerPercentage, setSuperpowerPercentage] = useState(settings.superpowerPercentage);
+  const [enabledSuperpowers, setEnabledSuperpowers] = useState(settings.enabledSuperpowers);
+
+  const superpowerTypes = [
+    { id: 1, name: 'Tank', color: '#FFFFFF' },
+    { id: 2, name: 'Spreader', color: '#A3A3A3' },
+    { id: 3, name: 'Survivor', color: '#FBBF24' },
+    { id: 4, name: 'Ghost', color: '#9CA3AF' },
+    { id: 5, name: 'Replicator', color: '#A3A3A3' },
+    { id: 6, name: 'Destroyer', color: '#EF4444' },
+    { id: 7, name: 'Hybrid', color: '#A855F7' },
+  ];
+
+  const toggleSuperpower = (id: number) => {
+    if (enabledSuperpowers.includes(id)) {
+      setEnabledSuperpowers(enabledSuperpowers.filter(sp => sp !== id));
+    } else {
+      setEnabledSuperpowers([...enabledSuperpowers, id].sort());
+    }
+  };
+
+  const handleSave = async () => {
+    const newSettings = {
+      boardSize,
+      tokensPerPlayer,
+      birthRules: birthRules.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)),
+      survivalRules: survivalRules.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)),
+      superpowerPercentage,
+      enabledSuperpowers,
+    };
+    await setSettings(newSettings);
+  };
+
+  const handleReset = async () => {
+    await resetToDefaults();
+    setBoardSize(DEFAULT_GAME_SETTINGS.boardSize);
+    setTokensPerPlayer(DEFAULT_GAME_SETTINGS.tokensPerPlayer);
+    setBirthRules(DEFAULT_GAME_SETTINGS.birthRules.join(','));
+    setSurvivalRules(DEFAULT_GAME_SETTINGS.survivalRules.join(','));
+    setSuperpowerPercentage(DEFAULT_GAME_SETTINGS.superpowerPercentage);
+    setEnabledSuperpowers(DEFAULT_GAME_SETTINGS.enabledSuperpowers);
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.content}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="headlineMedium" style={styles.title}>
+              Game Settings
+            </Text>
+            <Text variant="bodySmall" style={styles.subtitle}>
+              Configure your Game of Strife match
+            </Text>
+          </Card.Content>
+        </Card>
+
+        {/* Board Settings */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Board Configuration
+            </Text>
+
+            <Text variant="bodyMedium" style={styles.label}>
+              Board Size: {boardSize}x{boardSize}
+            </Text>
+            <View style={styles.sizeButtons}>
+              {[10, 15, 20, 25, 30].map(size => (
+                <Button
+                  key={size}
+                  mode={boardSize === size ? 'contained' : 'outlined'}
+                  onPress={() => setBoardSize(size)}
+                  style={styles.sizeButton}
+                  compact
+                >
+                  {size}
+                </Button>
+              ))}
+            </View>
+
+            <Text variant="bodyMedium" style={[styles.label, styles.marginTop]}>
+              Tokens Per Player: {tokensPerPlayer}
+            </Text>
+            <View style={styles.sizeButtons}>
+              {[10, 15, 20, 25, 30, 40, 50].map(tokens => (
+                <Button
+                  key={tokens}
+                  mode={tokensPerPlayer === tokens ? 'contained' : 'outlined'}
+                  onPress={() => setTokensPerPlayer(tokens)}
+                  style={styles.sizeButton}
+                  compact
+                >
+                  {tokens}
+                </Button>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Conway Rules */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Conway's Game of Life Rules
+            </Text>
+
+            <TextInput
+              mode="outlined"
+              label="Birth Rules (neighbors for birth)"
+              value={birthRules}
+              onChangeText={setBirthRules}
+              placeholder="3"
+              keyboardType="numeric"
+              style={styles.input}
+              textColor="#FFFFFF"
+            />
+
+            <TextInput
+              mode="outlined"
+              label="Survival Rules (neighbors to survive)"
+              value={survivalRules}
+              onChangeText={setSurvivalRules}
+              placeholder="2,3"
+              keyboardType="numeric"
+              style={styles.input}
+              textColor="#FFFFFF"
+            />
+
+            <Text variant="bodySmall" style={styles.helpText}>
+              Standard Conway's rule: Birth on 3, Survive on 2 or 3
+            </Text>
+          </Card.Content>
+        </Card>
+
+        {/* Superpowers */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Superpowers
+            </Text>
+
+            <Text variant="bodyMedium" style={styles.label}>
+              Superpower Chance: {superpowerPercentage}%
+            </Text>
+            <View style={styles.sizeButtons}>
+              {[0, 10, 20, 30, 50, 75, 100].map(percentage => (
+                <Button
+                  key={percentage}
+                  mode={superpowerPercentage === percentage ? 'contained' : 'outlined'}
+                  onPress={() => setSuperpowerPercentage(percentage)}
+                  style={styles.sizeButton}
+                  compact
+                >
+                  {percentage}%
+                </Button>
+              ))}
+            </View>
+
+            <Text variant="bodyMedium" style={[styles.label, styles.marginTop]}>
+              Enabled Superpowers:
+            </Text>
+            <View style={styles.chipContainer}>
+              {superpowerTypes.map(sp => (
+                <Chip
+                  key={sp.id}
+                  selected={enabledSuperpowers.includes(sp.id)}
+                  onPress={() => toggleSuperpower(sp.id)}
+                  style={[
+                    styles.chip,
+                    enabledSuperpowers.includes(sp.id) && { backgroundColor: sp.color + '40' }
+                  ]}
+                  textStyle={styles.chipText}
+                >
+                  {sp.name}
+                </Chip>
+              ))}
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Action Buttons */}
+        <View style={styles.actions}>
+          <Button
+            mode="contained"
+            onPress={handleSave}
+            style={styles.saveButton}
+            disabled={isLoading}
+            loading={isLoading}
+            icon="content-save"
+          >
+            Save Settings
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={handleReset}
+            style={styles.resetButton}
+            disabled={isLoading}
+            icon="restore"
+          >
+            Reset to Defaults
+          </Button>
+        </View>
+
+        <Text variant="bodySmall" style={styles.footer}>
+          Phase 4: UI Components Complete ✓
+        </Text>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#111827',
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  card: {
+    marginBottom: 16,
+    backgroundColor: '#1F2937',
+  },
+  title: {
+    color: '#F3F4F6',
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: '#9CA3AF',
+  },
+  sectionTitle: {
+    color: '#F3F4F6',
+    marginBottom: 12,
+  },
+  label: {
+    color: '#D1D5DB',
+    marginBottom: 8,
+  },
+  sizeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  sizeButton: {
+    minWidth: 50,
+  },
+  input: {
+    marginBottom: 12,
+    backgroundColor: '#374151',
+  },
+  helpText: {
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  chip: {
+    backgroundColor: '#374151',
+  },
+  chipText: {
+    color: '#FFFFFF',
+  },
+  actions: {
+    gap: 12,
+    marginTop: 8,
+  },
+  saveButton: {
+    backgroundColor: '#10B981',
+  },
+  resetButton: {
+    borderColor: '#6B7280',
+  },
+  marginTop: {
+    marginTop: 16,
+  },
+  footer: {
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 24,
+  },
+});
