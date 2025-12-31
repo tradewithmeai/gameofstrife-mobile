@@ -5,7 +5,7 @@ import { Socket } from 'socket.io'
 import { RoomManager } from './services/roomManager.js'
 import { MatchService } from './services/matchService.js'
 import { GameRegistry } from './services/gameRegistry.js'
-import { ClientToServerEvents, ServerToClientEvents } from './types/room.js'
+import { ClientToServerEvents, ServerToClientEvents, Player } from './types/room.js'
 
 // Game of Strife Mobile Backend
 console.log('='.repeat(50))
@@ -69,7 +69,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
 
   // Create room
   socket.on('createRoom', ({ isPublic, settings }) => {
-    const room = roomManager.createRoom(socket.id, isPublic, settings)
+    const room = roomManager.createRoom(socket.id, socket.id, isPublic, settings)
     socket.join(room.id)
     socket.emit('roomJoined', {
       id: room.id,
@@ -87,7 +87,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
 
   // Join room
   socket.on('joinRoom', (code: string) => {
-    const room = roomManager.joinRoom(code, socket.id)
+    const room = roomManager.joinRoom(socket.id, socket.id, code)
     if (!room) {
       socket.emit('error', 'Room not found or full')
       return
@@ -114,8 +114,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
 
     // Start match when 2 players
     if (room.players.length === 2) {
-      const matchId = matchService.createMatch(room.id, room.players.map(p => p.id), room.gameSettings)
-      const matchState = matchService.getMatch(matchId)
+      const matchState = matchService.createMatch(room.id, room.players.map(p => p.id), room.gameSettings)
 
       if (matchState) {
         gameNamespace.to(room.id).emit('matchStart', {
@@ -192,12 +191,11 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     const roomId = GameRegistry.getRoomIdForMatch(matchId)
     if (!roomId) return
 
-    const room = roomManager.getRoomById(roomId)
+    const room = roomManager.getRoom(roomId)
     if (!room || room.players.length !== 2) return
 
     // Create new match
-    const newMatchId = matchService.createMatch(roomId, room.players.map(p => p.id), room.gameSettings)
-    const newMatch = matchService.getMatch(newMatchId)
+    const newMatch = matchService.createMatch(roomId, room.players.map((p: Player) => p.id), room.gameSettings)
 
     if (newMatch) {
       gameNamespace.to(roomId).emit('matchStart', {
@@ -216,7 +214,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`)
-    roomManager.leaveAllRooms(socket.id)
+    roomManager.leaveRoom(socket.id)
   })
 })
 
