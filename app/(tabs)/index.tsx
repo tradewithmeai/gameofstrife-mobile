@@ -1,7 +1,8 @@
 import { View, StyleSheet, TextInput as RNTextInput } from 'react-native';
-import { Text, Button, Card, Chip, TextInput } from 'react-native-paper';
+import { Text, Button, Card, Chip, TextInput, IconButton } from 'react-native-paper';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { useSocketStore } from '../../stores/socketStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
@@ -24,6 +25,7 @@ export default function LobbyScreen() {
 
   const [joinCode, setJoinCode] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
+  const [copiedCode, setCopiedCode] = useState('');
 
   // Connect to server on mount
   useEffect(() => {
@@ -58,14 +60,36 @@ export default function LobbyScreen() {
     createRoom(false, settings);
   };
 
+  const handleCopyCode = async () => {
+    if (currentRoom?.code) {
+      await Clipboard.setStringAsync(currentRoom.code);
+      setCopiedCode(currentRoom.code);
+      console.log('[LobbyScreen] Room code copied:', currentRoom.code);
+    }
+  };
+
   const handleJoinRoom = () => {
     if (joinCode.trim().length >= 4) {
       console.log('[LobbyScreen] Joining room with code:', joinCode);
+      // If currently in a room, leave it first
+      if (currentRoom) {
+        console.log('[LobbyScreen] Leaving current room before joining new one');
+        leaveRoom();
+      }
       joinRoom(joinCode.trim().toUpperCase());
       setJoinCode('');
       setShowJoinInput(false);
+      setCopiedCode(''); // Clear copied code after joining
     }
   };
+
+  // Auto-fill join code when showing join input and we have a copied code
+  useEffect(() => {
+    if (showJoinInput && copiedCode) {
+      setJoinCode(copiedCode);
+      console.log('[LobbyScreen] Auto-filled join code from clipboard:', copiedCode);
+    }
+  }, [showJoinInput]);
 
   return (
     <View style={styles.container}>
@@ -106,9 +130,23 @@ export default function LobbyScreen() {
             <Text variant="bodyMedium" style={styles.textGray}>
               Share this code with your opponent:
             </Text>
-            <Text variant="displaySmall" style={styles.roomCode}>
-              {currentRoom.code}
-            </Text>
+            <View style={styles.roomCodeContainer}>
+              <Text variant="displaySmall" style={styles.roomCode}>
+                {currentRoom.code}
+              </Text>
+              <IconButton
+                icon="content-copy"
+                iconColor="#10B981"
+                size={32}
+                onPress={handleCopyCode}
+                style={styles.copyButton}
+              />
+            </View>
+            {copiedCode === currentRoom.code && (
+              <Text variant="bodySmall" style={styles.copiedText}>
+                ✓ Code copied to clipboard!
+              </Text>
+            )}
             <Text variant="bodySmall" style={styles.textGray}>
               Waiting for player to join... ({currentRoom.players.length}/{currentRoom.maxPlayers})
             </Text>
@@ -126,8 +164,9 @@ export default function LobbyScreen() {
       )}
 
       {/* Lobby Actions */}
-      {!currentRoom && (
-        <View style={styles.actions}>
+      <View style={styles.actions}>
+        {/* Create Room - only show when not in a room */}
+        {!currentRoom && (
           <Button
             mode="contained"
             onPress={handleCreateRoom}
@@ -137,56 +176,57 @@ export default function LobbyScreen() {
           >
             Create Private Room
           </Button>
+        )}
 
-          {!showJoinInput ? (
-            <Button
-              mode="outlined"
-              onPress={() => setShowJoinInput(true)}
-              style={styles.button}
-              disabled={!isConnected}
-              icon="login"
-            >
-              Join Room
-            </Button>
-          ) : (
-            <Card style={styles.joinCard}>
-              <Card.Content>
-                <Text variant="titleSmall" style={styles.textWhite}>
-                  Enter Room Code
-                </Text>
-                <TextInput
-                  mode="outlined"
-                  placeholder="ABCD"
-                  value={joinCode}
-                  onChangeText={(text) => setJoinCode(text.toUpperCase())}
-                  maxLength={6}
-                  autoCapitalize="characters"
-                  style={styles.input}
-                  textColor="#FFFFFF"
-                />
-                <View style={styles.joinButtons}>
-                  <Button
-                    mode="text"
-                    onPress={() => {
-                      setShowJoinInput(false);
-                      setJoinCode('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={handleJoinRoom}
-                    disabled={joinCode.trim().length < 4}
-                  >
-                    Join
-                  </Button>
-                </View>
-              </Card.Content>
-            </Card>
-          )}
-        </View>
-      )}
+        {/* Join Room - always available */}
+        {!showJoinInput ? (
+          <Button
+            mode="outlined"
+            onPress={() => setShowJoinInput(true)}
+            style={styles.button}
+            disabled={!isConnected}
+            icon="login"
+          >
+            Join Room
+          </Button>
+        ) : (
+          <Card style={styles.joinCard}>
+            <Card.Content>
+              <Text variant="titleSmall" style={styles.textWhite}>
+                Enter Room Code
+              </Text>
+              <TextInput
+                mode="outlined"
+                placeholder="ABCD"
+                value={joinCode}
+                onChangeText={(text) => setJoinCode(text.toUpperCase())}
+                maxLength={6}
+                autoCapitalize="characters"
+                style={styles.input}
+                textColor="#FFFFFF"
+              />
+              <View style={styles.joinButtons}>
+                <Button
+                  mode="text"
+                  onPress={() => {
+                    setShowJoinInput(false);
+                    setJoinCode('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={handleJoinRoom}
+                  disabled={joinCode.trim().length < 4}
+                >
+                  Join
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+      </View>
 
       {/* Game Settings Info */}
       <Card style={styles.settingsInfoCard}>
@@ -255,12 +295,29 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#10B981',
   },
+  roomCodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
   roomCode: {
     color: '#FFFFFF',
-    textAlign: 'center',
     fontWeight: 'bold',
-    marginVertical: 12,
     letterSpacing: 4,
+  },
+  copyButton: {
+    margin: 0,
+  },
+  copiedText: {
+    color: '#10B981',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  cancelButton: {
+    marginTop: 12,
+    borderColor: '#EF4444',
   },
   actions: {
     marginTop: 32,

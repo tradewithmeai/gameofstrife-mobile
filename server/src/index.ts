@@ -117,11 +117,37 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
       const matchState = matchService.createMatch(room.id, room.players.map(p => p.id), room.gameSettings)
 
       if (matchState) {
-        gameNamespace.to(room.id).emit('matchStart', {
-          roomId: room.id,
-          players: room.players,
-          startedAt: new Date()
+        // Emit matchStart to each player individually with their seat assignment
+        room.players.forEach((player, index) => {
+          const seat = index === 0 ? 'P1' : 'P2'
+          const playerSocket = gameNamespace.sockets.get(player.socketId!)
+
+          if (playerSocket) {
+            playerSocket.emit('matchStart', {
+              matchId: matchState.id,
+              roomId: room.id,
+              players: room.players,
+              startedAt: new Date(),
+              mySeat: seat,
+              board: matchState.board,
+              currentTurn: matchState.currentTurn,
+              gameType: matchState.gameType,
+              version: matchState.version,
+              status: matchState.status,
+              metadata: matchState.metadata || {
+                generation: 0,
+                playerTokens: (matchState.engineState as any)?.playerTokens,
+                boardSize: (matchState.engineState as any)?.boardSize,
+                conwayRules: (matchState.engineState as any)?.conwayRules,
+                stage: (matchState.engineState as any)?.currentPhase,
+                settings: matchState.gameSettings,
+                fullBoard: (matchState.engineState as any)?.board
+              }
+            })
+          }
         })
+
+        console.log(`Match started: ${matchState.id} in room ${room.code}`)
       }
     }
   })
@@ -231,11 +257,37 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     const newMatch = matchService.createMatch(roomId, room.players.map((p: Player) => p.id), room.gameSettings)
 
     if (newMatch) {
-      gameNamespace.to(roomId).emit('matchStart', {
-        roomId: room.id,
-        players: room.players,
-        startedAt: new Date()
+      // Emit matchStart to each player individually with their seat assignment
+      room.players.forEach((player, index) => {
+        const seat = index === 0 ? 'P1' : 'P2'
+        const playerSocket = gameNamespace.sockets.get(player.socketId!)
+
+        if (playerSocket) {
+          playerSocket.emit('matchStart', {
+            matchId: newMatch.id,
+            roomId: room.id,
+            players: room.players,
+            startedAt: new Date(),
+            mySeat: seat,
+            board: newMatch.board,
+            currentTurn: newMatch.currentTurn,
+            gameType: newMatch.gameType,
+            version: newMatch.version,
+            status: newMatch.status,
+            metadata: newMatch.metadata || {
+              generation: 0,
+              playerTokens: (newMatch.engineState as any)?.playerTokens,
+              boardSize: (newMatch.engineState as any)?.boardSize,
+              conwayRules: (newMatch.engineState as any)?.conwayRules,
+              stage: (newMatch.engineState as any)?.currentPhase,
+              settings: newMatch.gameSettings,
+              fullBoard: (newMatch.engineState as any)?.board
+            }
+          })
+        }
       })
+
+      console.log(`Rematch started: ${newMatch.id} in room ${room.code}`)
     }
   })
 
