@@ -143,6 +143,39 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     socket.emit('publicRooms', roomData)
   })
 
+  // Leave room
+  socket.on('leaveRoom', () => {
+    const room = roomManager.leaveRoom(socket.id)
+
+    // Leave the socket.io room channel
+    if (room) {
+      socket.leave(room.id)
+
+      // Notify remaining players in the room
+      const roomData = {
+        id: room.id,
+        code: room.code,
+        status: room.status,
+        players: room.players.map(p => ({ id: p.id, joinedAt: p.joinedAt, isReady: p.isReady })),
+        maxPlayers: room.maxPlayers,
+        createdAt: room.createdAt,
+        lastActivity: room.lastActivity,
+        isPublic: room.isPublic,
+        gameSettings: room.gameSettings
+      }
+
+      gameNamespace.to(room.id).emit('roomUpdate', {
+        room: roomData,
+        type: 'player_left'
+      })
+
+      console.log(`Player ${socket.id} left room ${room.code}`)
+    }
+
+    // Confirm to the leaving player
+    socket.emit('roomLeft')
+  })
+
   // Claim square
   socket.on('claimSquare', async ({ matchId, squareId, selectionId, superpowerType }) => {
     const result = await matchService.claimSquare({

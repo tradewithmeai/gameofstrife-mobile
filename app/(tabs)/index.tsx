@@ -16,7 +16,8 @@ export default function LobbyScreen() {
     connect,
     disconnect,
     createRoom,
-    joinRoom
+    joinRoom,
+    leaveRoom
   } = useSocketStore();
 
   const { settings } = useSettingsStore();
@@ -111,6 +112,15 @@ export default function LobbyScreen() {
             <Text variant="bodySmall" style={styles.textGray}>
               Waiting for player to join... ({currentRoom.players.length}/{currentRoom.maxPlayers})
             </Text>
+            <Button
+              mode="outlined"
+              onPress={() => leaveRoom()}
+              style={styles.cancelButton}
+              icon="arrow-left"
+              textColor="#EF4444"
+            >
+              Cancel Room
+            </Button>
           </Card.Content>
         </Card>
       )}
