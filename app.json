@@ -43,7 +43,7 @@
       ]
     ],
     "extra": {
-      "wsUrl": "http://localhost:3033"
+      "wsUrl": "https://gameofstrife-mobile-production.up.railway.app"
     }
   }
 }
