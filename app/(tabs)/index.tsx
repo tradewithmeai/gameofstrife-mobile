@@ -197,10 +197,10 @@ export default function LobbyScreen() {
               </Text>
               <TextInput
                 mode="outlined"
-                placeholder="ABCD"
+                placeholder="ROOM-ABC123"
                 value={joinCode}
                 onChangeText={(text) => setJoinCode(text.toUpperCase())}
-                maxLength={6}
+                maxLength={15}
                 autoCapitalize="characters"
                 style={styles.input}
                 textColor="#FFFFFF"
