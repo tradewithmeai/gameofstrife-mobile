@@ -254,7 +254,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     const touch = e.nativeEvent;
 
-    devLog('[GameBoard] Raw touch:', {
+    console.log('[GameBoard] Raw touch:', {
       locationX: touch.locationX,
       locationY: touch.locationY,
       pageX: touch.pageX,
@@ -263,7 +263,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      devLog('[GameBoard] Board position:', { boardX, boardY, width, height });
+      console.log('[GameBoard] Board position:', { boardX, boardY, width, height });
 
       // First touch: detect which method to use
       if (!detectionAttempted.current) {
@@ -273,15 +273,17 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         detectionAttempted.current = true;
 
         const { x, y } = getCoordinatesForMethod(touch, boardX, boardY, detectedMethod);
-        devLog('[GameBoard] Using detected method:', detectedMethod, { x, y });
+        console.log('[GameBoard] Using detected method:', detectedMethod, { x, y });
 
         const cell = getCellFromPosition(x, y, width, height);
+        console.log('[GameBoard] Calculated cell from touch:', { x, y, cell });
         if (cell) {
           handlePlacement(cell.row, cell.col);
         }
       } else if (touchMethod) {
         // Subsequent touches: use cached method
         const { x, y } = getCoordinatesForMethod(touch, boardX, boardY, touchMethod);
+        console.log('[GameBoard] Subsequent touch coords:', { x, y, method: touchMethod });
 
         const cell = getCellFromPosition(x, y, width, height);
         if (cell) {
