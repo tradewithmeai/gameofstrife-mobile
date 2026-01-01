@@ -13,13 +13,17 @@ export class RoomManager {
   }
 
   generateRoomCode(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    const prefix = 'ROOM-'
-    let code = ''
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return prefix + code
+    // TESTING: Use fixed room code for easier testing
+    return 'TEST-123456'
+
+    // Production code (commented out):
+    // const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    // const prefix = 'ROOM-'
+    // let code = ''
+    // for (let i = 0; i < 6; i++) {
+    //   code += chars.charAt(Math.floor(Math.random() * chars.length))
+    // }
+    // return prefix + code
   }
 
   generateRoomId(): string {
