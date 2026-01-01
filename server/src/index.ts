@@ -216,14 +216,30 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     if (!roomId) return
 
     if (result.success && result.matchState) {
-      gameNamespace.to(roomId).emit('squareClaimed', {
+      // Send full board with metadata for Game of Strife
+      const fullBoardData: any = {
         matchId,
         squareId,
         by: socket.id,
         version: result.matchState.version,
         nextTurn: result.matchState.currentTurn,
-        board: result.matchState.board
-      })
+        board: result.matchState.board, // Flat board for compatibility
+      }
+
+      // For Game of Strife, include full 2D board and metadata
+      if (result.matchState.gameType === 'gameofstrife' && result.matchState.engineState) {
+        fullBoardData.metadata = {
+          fullBoard: (result.matchState.engineState as any).board, // 2D Cell[][] array
+          generation: (result.matchState.engineState as any).generation,
+          playerTokens: (result.matchState.engineState as any).playerTokens,
+          boardSize: (result.matchState.engineState as any).boardSize,
+          stage: (result.matchState.engineState as any).currentPhase,
+          conwayRules: (result.matchState.engineState as any).conwayRules,
+          settings: result.matchState.gameSettings
+        }
+      }
+
+      gameNamespace.to(roomId).emit('squareClaimed', fullBoardData)
 
       // Check for game end
       if (result.matchState.status === 'finished' && result.matchState.winner) {

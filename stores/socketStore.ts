@@ -317,7 +317,7 @@ const onMatchStart = (data: Match & { matchId?: string; mySeat?: 'P1' | 'P2'; cu
   }
 }
 
-const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; version: number; nextTurn?: string; board: (string | null)[] }) => {
+const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; version: number; nextTurn?: string; board: (string | null)[]; metadata?: any }) => {
   const state = storeInstance.getState()
 
   console.log(`[SquareClaimed] Received:`, {
@@ -359,7 +359,9 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       ...state.matchState,
       board: data.board, // Use authoritative board from server
       version: data.version,
-      currentTurn: (data.nextTurn as 'P1' | 'P2') || state.matchState.currentTurn
+      currentTurn: (data.nextTurn as 'P1' | 'P2') || state.matchState.currentTurn,
+      // Update metadata if provided (includes fullBoard for Game of Strife)
+      metadata: data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata
     }
 
     console.log(`[SquareClaimed] APPLIED:`, {
@@ -379,10 +381,16 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       nextTurn: newState.currentTurn
     }))
 
+    console.log(`[SquareClaimed] ===== UPDATING STATE =====`)
+    console.log(`[SquareClaimed] New currentTurn:`, newState.currentTurn)
+    console.log(`[SquareClaimed] New board:`, data.board)
+
     storeInstance.setState({
       matchState: newState,
       pendingClaims: updatedPendingClaims
     })
+
+    console.log(`[SquareClaimed] ===== STATE UPDATED =====`)
   } else {
     console.log(`[SquareClaimed] DROPPED: no matchState available or no board in payload`)
   }
