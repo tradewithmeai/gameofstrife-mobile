@@ -100,9 +100,17 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       // Check if locationXY is suspiciously close to origin
       const locationDistance = Math.sqrt(locationMethod.x ** 2 + locationMethod.y ** 2);
 
-      // If locationXY gives small values near origin BUT pageXY differs significantly,
-      // locationXY is likely broken (stuck at constant small values)
-      if (locationDistance < 30 && maxDiff > 30) {
+      console.log('[GameBoard] Detection check:', {
+        locationXY: locationMethod,
+        pageXY: pageMethod,
+        locationDistance: locationDistance.toFixed(2),
+        maxDiff: maxDiff.toFixed(2),
+        willTrigger: locationDistance < 20 && maxDiff > 100
+      });
+
+      // More restrictive check: only trigger if locationXY is VERY close to origin
+      // AND pageXY differs by a LARGE amount (Chromebook pattern: ~14px vs 175-323px)
+      if (locationDistance < 20 && maxDiff > 100) {
         console.log('[GameBoard] DETECTED: locationXY stuck near origin, using pageXY (Chromebook)');
         devLog('[GameBoard] locationXY appears broken:', {
           locationXY: locationMethod,
