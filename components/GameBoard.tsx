@@ -37,6 +37,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   // Detection threshold constant
   const LOCATION_XY_MIN_THRESHOLD = 30;
 
+  // Log component render to verify code is loaded
+  console.log('[GameBoard] Component rendered with runtime detection enabled');
+
   // Extract coordinates using both methods for comparison/detection
   const extractBothCoordinateMethods = useCallback((
     touch: any,
