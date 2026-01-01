@@ -130,17 +130,14 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     const usableWidth = boardWidth - (BOARD_BORDER_WIDTH * 2);
     const usableHeight = boardHeight - (BOARD_BORDER_WIDTH * 2);
 
-    // Validate that touch is within the usable board area (not in the border)
-    if (adjustedX < 0 || adjustedY < 0 || adjustedX >= usableWidth || adjustedY >= usableHeight) {
-      console.log('[GameBoard] REJECTED - Touch outside usable area:', {
-        locationX, locationY, adjustedX, adjustedY, usableWidth, usableHeight
-      });
-      return null;
-    }
+    // Clamp coordinates to valid range (allow border touches to map to nearest cell)
+    const clampedX = Math.max(0, Math.min(adjustedX, usableWidth - 0.1));
+    const clampedY = Math.max(0, Math.min(adjustedY, usableHeight - 0.1));
 
     devLog('[GameBoard] Touch calculation:', {
       locationX, locationY,
       adjustedX, adjustedY,
+      clampedX, clampedY,
       boardWidth, boardHeight,
       boardSize,
       borderOffset: BOARD_BORDER_WIDTH
@@ -148,9 +145,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     const cellSize = Math.min(usableWidth, usableHeight) / boardSize;
 
-    // Calculate cell position
-    const col = Math.floor(adjustedX / cellSize);
-    const row = Math.floor(adjustedY / cellSize);
+    // Calculate cell position using clamped coordinates
+    const col = Math.floor(clampedX / cellSize);
+    const row = Math.floor(clampedY / cellSize);
 
     devLog('[GameBoard] Calculated cell:', {
       row,
