@@ -30,20 +30,31 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Get cell coordinates from touch position - using locationX/Y which is relative to the touched view
   const getCellFromPosition = useCallback((locationX: number, locationY: number, boardWidth: number, boardHeight: number): { row: number; col: number } | null => {
+    // Account for board border (2px on each side as defined in styles.board)
+    const BOARD_BORDER_WIDTH = 2;
+
+    // Adjust for border offset
+    const adjustedX = locationX - BOARD_BORDER_WIDTH;
+    const adjustedY = locationY - BOARD_BORDER_WIDTH;
+
     console.log('[GameBoard] Touch calculation:', {
       locationX, locationY,
+      adjustedX, adjustedY,
       boardWidth, boardHeight,
-      boardSize
+      boardSize,
+      borderOffset: BOARD_BORDER_WIDTH
     });
 
-    // Calculate cell size
-    const cellSize = Math.min(boardWidth, boardHeight) / boardSize;
+    // Calculate usable board area (excluding borders)
+    const usableWidth = boardWidth - (BOARD_BORDER_WIDTH * 2);
+    const usableHeight = boardHeight - (BOARD_BORDER_WIDTH * 2);
+    const cellSize = Math.min(usableWidth, usableHeight) / boardSize;
 
-    // Direct calculation - locationX/Y are already relative to the board
-    const col = Math.floor(locationX / cellSize);
-    const row = Math.floor(locationY / cellSize);
+    // Calculate cell position
+    const col = Math.floor(adjustedX / cellSize);
+    const row = Math.floor(adjustedY / cellSize);
 
-    console.log('[GameBoard] Calculated cell:', { row, col, cellSize });
+    console.log('[GameBoard] Calculated cell:', { row, col, cellSize: cellSize.toFixed(2) });
 
     // Check bounds
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
