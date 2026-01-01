@@ -92,7 +92,16 @@ export class GameOfStrifeEngine implements GameEngine {
     }
 
     // Check if square is already occupied
-    if (gosState.board[row][col].player !== null) {
+    const occupyingPlayer = gosState.board[row][col].player;
+    const playerIndex = seat === 'P1' ? 0 : 1;
+
+    if (occupyingPlayer !== null) {
+      // Allow player to remove their own token
+      if (occupyingPlayer === playerIndex) {
+        // This is valid - player is removing their own token
+        return { valid: true, isRemoval: true };
+      }
+      // Square occupied by opponent
       return { valid: false, reason: 'square_occupied' }
     }
 
@@ -102,7 +111,6 @@ export class GameOfStrifeEngine implements GameEngine {
     }
 
     // Check if player has tokens remaining
-    const playerIndex = seat === 'P1' ? 0 : 1
     const tokensKey = playerIndex === 0 ? 'player0' : 'player1'
     if (gosState.playerTokens[tokensKey] <= 0) {
       return { valid: false, reason: 'invalid_square' } // No more tokens
@@ -144,11 +152,26 @@ export class GameOfStrifeEngine implements GameEngine {
     }
 
     const { row, col } = indexToPosition(squareId, boardSize)
-    newBoard[row][col] = {
-      player: playerIndex,
-      alive: true, // Placed tokens start alive
-      superpowerType: (options?.superpowerType || 0) as SuperpowerType, // Use provided superpower type or default to normal
-      memory: 0
+
+    // Check if this is a removal (player clicking their own token)
+    const isRemoval = newBoard[row][col].player === playerIndex;
+
+    if (isRemoval) {
+      // Remove the token - reset to empty cell
+      newBoard[row][col] = {
+        player: null,
+        alive: false,
+        superpowerType: 0,
+        memory: 0
+      };
+    } else {
+      // Place new token
+      newBoard[row][col] = {
+        player: playerIndex,
+        alive: true, // Placed tokens start alive
+        superpowerType: (options?.superpowerType || 0) as SuperpowerType, // Use provided superpower type or default to normal
+        memory: 0
+      };
     }
 
     // Handle token counting and phase management
@@ -156,10 +179,17 @@ export class GameOfStrifeEngine implements GameEngine {
     let newPlayerTokens: { player0: number; player1: number } | undefined
 
     if ('currentPhase' in gosState && gosState.playerTokens) {
-      // Update token count for GameOfStrife state (ONLY ONCE)
+      // Update token count for GameOfStrife state
       newPlayerTokens = { ...gosState.playerTokens }
       const tokensKey = playerIndex === 0 ? 'player0' : 'player1'
-      newPlayerTokens[tokensKey]--
+
+      if (isRemoval) {
+        // Restore token count when removing
+        newPlayerTokens[tokensKey]++;
+      } else {
+        // Decrease token count when placing
+        newPlayerTokens[tokensKey]--;
+      }
 
       // Check if placement phase should end
       const totalTokensRemaining = newPlayerTokens.player0 + newPlayerTokens.player1

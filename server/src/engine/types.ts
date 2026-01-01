@@ -11,6 +11,7 @@ export interface EngineState {
 export interface ValidationResult {
   valid: boolean
   reason?: 'invalid_square' | 'square_occupied' | 'not_your_turn' | 'match_finished'
+  isRemoval?: boolean // True if this is a token removal operation
 }
 
 export interface ClaimApplication {

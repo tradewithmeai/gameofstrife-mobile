@@ -82,12 +82,34 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       return;
     }
 
-    // Check if cell is already occupied
-    const cellOccupied = board[row] && board[row][col] && board[row][col].player !== null;
-    console.log('[GameBoard] Cell occupied check:', { cellOccupied, player: board[row]?.[col]?.player });
+    // Check if cell is occupied
+    const cell = board[row]?.[col];
+    const cellOccupied = cell && cell.player !== null;
+    const myPlayerIndex = mySeat === 'P1' ? 0 : 1;
+    const isMyToken = cellOccupied && cell.player === myPlayerIndex;
 
+    console.log('[GameBoard] Cell check:', {
+      cellOccupied,
+      player: cell?.player,
+      myPlayerIndex,
+      isMyToken
+    });
+
+    // If clicking own token, remove it (backend handles this automatically)
+    if (isMyToken) {
+      console.log('[GameBoard] Removing own token at position:', row * boardSize + col);
+      onGameAction({
+        type: 'PLACE_TOKEN',  // Use PLACE_TOKEN - backend detects removal automatically
+        payload: { position: row * boardSize + col, row, col },
+        timestamp: Date.now()
+      });
+      lastPlacedCell.current = cellKey;
+      return;
+    }
+
+    // If cell occupied by opponent, skip
     if (cellOccupied) {
-      console.log('[GameBoard] Cell already occupied, skipping');
+      console.log('[GameBoard] Cell occupied by opponent, skipping');
       return;
     }
 
@@ -102,7 +124,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       payload: { position, row, col },
       timestamp: Date.now()
     });
-  }, [isPlacementStage, isMyTurn, isFinished, board, boardSize, onGameAction]);
+  }, [isPlacementStage, isMyTurn, isFinished, board, boardSize, onGameAction, mySeat]);
 
   // Measure board layout on mount and when it changes
   const handleLayout = useCallback(() => {
