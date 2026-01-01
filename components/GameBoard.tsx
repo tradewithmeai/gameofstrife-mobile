@@ -122,9 +122,21 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     // Account for board border (2px on each side as defined in styles.board)
     const BOARD_BORDER_WIDTH = 2;
 
-    // Adjust for border offset and clamp to prevent negative coordinates
-    const adjustedX = Math.max(0, locationX - BOARD_BORDER_WIDTH);
-    const adjustedY = Math.max(0, locationY - BOARD_BORDER_WIDTH);
+    // Adjust for border offset
+    const adjustedX = locationX - BOARD_BORDER_WIDTH;
+    const adjustedY = locationY - BOARD_BORDER_WIDTH;
+
+    // Calculate usable board area (excluding borders)
+    const usableWidth = boardWidth - (BOARD_BORDER_WIDTH * 2);
+    const usableHeight = boardHeight - (BOARD_BORDER_WIDTH * 2);
+
+    // Validate that touch is within the usable board area (not in the border)
+    if (adjustedX < 0 || adjustedY < 0 || adjustedX >= usableWidth || adjustedY >= usableHeight) {
+      console.log('[GameBoard] Touch outside usable board area (in border or beyond):', {
+        adjustedX, adjustedY, usableWidth, usableHeight
+      });
+      return null;
+    }
 
     devLog('[GameBoard] Touch calculation:', {
       locationX, locationY,
@@ -134,9 +146,6 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       borderOffset: BOARD_BORDER_WIDTH
     });
 
-    // Calculate usable board area (excluding borders)
-    const usableWidth = boardWidth - (BOARD_BORDER_WIDTH * 2);
-    const usableHeight = boardHeight - (BOARD_BORDER_WIDTH * 2);
     const cellSize = Math.min(usableWidth, usableHeight) / boardSize;
 
     // Calculate cell position
