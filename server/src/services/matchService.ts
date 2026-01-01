@@ -274,7 +274,6 @@ export class MatchService {
     console.log(`[MatchService] Selection ID: ${selectionId}`)
     console.log(`[MatchService] ============================`)
 
-    const match = this.matches.get(matchId)
     if (!match) {
       return { success: false, reason: 'match_finished' }
     }
