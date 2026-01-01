@@ -31,9 +31,24 @@ export class RoomManager {
   }
 
   createRoom(creatorId: string, creatorSocketId: string, isPublic = false, gameSettings?: any): Room {
+    const roomCode = this.generateRoomCode()
+
+    // TESTING: Delete any existing room with the test code
+    if (roomCode === 'TEST-123456') {
+      const existingRoom = this.findRoomByCode(roomCode)
+      if (existingRoom) {
+        console.log(`[TESTING] Deleting stale test room: ${existingRoom.id}`)
+        // Remove all players from the old room
+        existingRoom.players.forEach(player => {
+          this.playerRooms.delete(player.id)
+        })
+        this.rooms.delete(existingRoom.id)
+      }
+    }
+
     const room: Room = {
       id: this.generateRoomId(),
-      code: this.generateRoomCode(),
+      code: roomCode,
       status: 'waiting',
       players: [{
         id: creatorId,
