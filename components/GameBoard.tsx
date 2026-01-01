@@ -232,6 +232,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
         Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Cell size: {(boardDimension/boardSize).toFixed(1)}px
       </Text>
+      <Text style={{ color: '#FBBF24', fontSize: 12, marginBottom: 4, fontWeight: 'bold' }}>
+        ⚠️ Cells are TINY ({(boardDimension/boardSize).toFixed(1)}px)! Tap carefully in center of square
+      </Text>
       <View
         ref={boardRef}
         style={[
