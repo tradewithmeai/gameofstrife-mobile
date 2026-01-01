@@ -30,35 +30,39 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Get cell coordinates from touch position with expanded hit areas
   const getCellFromPosition = useCallback((pageX: number, pageY: number): { row: number; col: number } | null => {
-    if (!boardLayout.current) return null;
+    if (!boardLayout.current) {
+      console.log('[GameBoard] No boardLayout available');
+      return null;
+    }
 
     const { x, y, width, height } = boardLayout.current;
     const relativeX = pageX - x;
     const relativeY = pageY - y;
 
+    console.log('[GameBoard] Touch calculation:', {
+      pageX, pageY,
+      boardX: x, boardY: y,
+      relativeX, relativeY,
+      boardSize,
+      width, height
+    });
+
     // Calculate cell size
     const cellSize = Math.min(width, height) / boardSize;
 
-    // Add tolerance for easier targeting (expand hit area by 25%)
-    const tolerance = cellSize * 0.125;
+    // Simplified calculation - just use relative position divided by cell size
+    const col = Math.floor(relativeX / cellSize);
+    const row = Math.floor(relativeY / cellSize);
 
-    const col = Math.floor((relativeX + tolerance) / cellSize);
-    const row = Math.floor((relativeY + tolerance) / cellSize);
+    console.log('[GameBoard] Calculated cell:', { row, col, cellSize });
 
-    // Check bounds with tolerance
+    // Check bounds
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
-      // Additional check: ensure we're not too far from the actual cell center
-      const cellCenterX = (col + 0.5) * cellSize;
-      const cellCenterY = (row + 0.5) * cellSize;
-      const distanceX = Math.abs(relativeX - cellCenterX);
-      const distanceY = Math.abs(relativeY - cellCenterY);
-
-      // Allow placement if within expanded area (cellSize/2 + tolerance)
-      if (distanceX <= cellSize * 0.75 && distanceY <= cellSize * 0.75) {
-        return { row, col };
-      }
+      console.log('[GameBoard] Cell valid!');
+      return { row, col };
     }
 
+    console.log('[GameBoard] Cell out of bounds');
     return null;
   }, [boardSize]);
 
