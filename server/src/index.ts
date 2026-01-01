@@ -218,9 +218,11 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     if (result.success && result.matchState) {
       gameNamespace.to(roomId).emit('squareClaimed', {
         matchId,
-        move: { squareId, playerId: socket.id, superpowerType },
-        matchState: result.matchState,
-        version: result.matchState.version
+        squareId,
+        by: socket.id,
+        version: result.matchState.version,
+        nextTurn: result.matchState.currentTurn,
+        board: result.matchState.board
       })
 
       // Check for game end
