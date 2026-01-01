@@ -186,18 +186,20 @@ export class GameOfStrifeEngine implements GameEngine {
       if (isRemoval) {
         // Restore token count when removing
         newPlayerTokens[tokensKey]++;
+        // IMPORTANT: Keep turn with same player when removing own token
+        nextTurn = seat;
       } else {
         // Decrease token count when placing
         newPlayerTokens[tokensKey]--;
-      }
 
-      // Check if placement phase should end
-      const totalTokensRemaining = newPlayerTokens.player0 + newPlayerTokens.player1
+        // Check if placement phase should end
+        const totalTokensRemaining = newPlayerTokens.player0 + newPlayerTokens.player1
 
-      if (totalTokensRemaining === 0) {
-        nextTurn = null // No more turns during simulation
-      } else {
-        nextTurn = seat === 'P1' ? 'P2' : 'P1'
+        if (totalTokensRemaining === 0) {
+          nextTurn = null // No more turns during simulation
+        } else {
+          nextTurn = seat === 'P1' ? 'P2' : 'P1'
+        }
       }
     } else {
       // For basic state, just switch turns
