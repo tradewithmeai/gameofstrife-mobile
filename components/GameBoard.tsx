@@ -170,27 +170,43 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       identifier: touch.identifier
     });
 
-    // CRITICAL FIX: Measure the board RIGHT NOW to get actual rendered dimensions
-    // Don't use cached boardDimension which might not match actual render size
-    boardRef.current?.measure((x, y, width, height) => {
-      console.log('[GameBoard] Just-in-time measure for touch:', { width, height, cachedDimension: boardDimension });
+    // CHROMEBOOK EMULATOR FIX: locationX/locationY are broken in Android emulator
+    // Use pageX/pageY with measureInWindow instead
+    boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
+      console.log('[GameBoard] Board position in window:', { boardX, boardY, width, height });
 
-      const cell = getCellFromPosition(touch.locationX, touch.locationY, width, height);
+      // Calculate relative position using pageX/pageY
+      const relativeX = touch.pageX - boardX;
+      const relativeY = touch.pageY - boardY;
+
+      console.log('[GameBoard] Using pageX/pageY method:', {
+        pageX: touch.pageX,
+        pageY: touch.pageY,
+        boardX,
+        boardY,
+        relativeX,
+        relativeY
+      });
+
+      const cell = getCellFromPosition(relativeX, relativeY, width, height);
       console.log('[GameBoard] Cell detected on touch start:', cell);
       if (cell) {
         handlePlacement(cell.row, cell.col);
       }
     });
-  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardDimension, boardSize]);
+  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardSize]);
 
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
     if (!isDragging || !isPlacementStage || !isMyTurn) return;
 
     const touch = e.nativeEvent;
 
-    // Use actual measured dimensions
-    boardRef.current?.measure((x, y, width, height) => {
-      const cell = getCellFromPosition(touch.locationX, touch.locationY, width, height);
+    // Use pageX/pageY method for Chromebook emulator compatibility
+    boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
+      const relativeX = touch.pageX - boardX;
+      const relativeY = touch.pageY - boardY;
+
+      const cell = getCellFromPosition(relativeX, relativeY, width, height);
       if (cell) {
         handlePlacement(cell.row, cell.col);
       }
