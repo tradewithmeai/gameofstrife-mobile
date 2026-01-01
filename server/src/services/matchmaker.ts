@@ -1,6 +1,7 @@
 import { Mutex } from 'async-mutex'
 import { v4 as uuidv4 } from 'uuid'
 import { Room } from '../types/room.js'
+import { logger } from '../utils/logger.js'
 
 interface MatchRequest {
   playerId: string
@@ -24,13 +25,7 @@ export class Matchmaker {
 
   async requestQuickMatch(playerId: string, socketId: string): Promise<PairingResult> {
     const correlationId = uuidv4()
-    console.log(`[QuickMatch] Request received`, { 
-      evt: 'quickMatch.request', 
-      playerId, 
-      socketId, 
-      correlationId,
-      queueLen: this.queue.length 
-    })
+    logger.debug('QuickMatch request', { playerId, correlationId, queueLen: this.queue.length })
 
     return await this.mutex.runExclusive(async () => {
       // Remove player from any existing room first
@@ -39,11 +34,7 @@ export class Matchmaker {
       // Check if player is already in queue (prevent duplicates)
       const existingIndex = this.queue.findIndex(req => req.playerId === playerId)
       if (existingIndex !== -1) {
-        console.log(`[QuickMatch] Player already in queue, updating`, { 
-          evt: 'quickMatch.updateQueue', 
-          playerId, 
-          correlationId 
-        })
+        logger.debug('QuickMatch queue updated', { playerId, correlationId })
         this.queue[existingIndex] = {
           playerId,
           socketId,
@@ -63,29 +54,17 @@ export class Matchmaker {
       // Try to pair players
       if (this.queue.length >= 2) {
         const [player1, player2] = this.queue.splice(0, 2)
-        
-        console.log(`[QuickMatch] Pairing players`, {
-          evt: 'quickMatch.pairing',
-          player1: player1.playerId,
-          player2: player2.playerId,
-          correlationId,
-          queueLen: this.queue.length
-        })
+
+        logger.debug('QuickMatch pairing', { player1: player1.playerId, player2: player2.playerId })
 
         // Create room
         const room = this.createRoom(player1, player2)
-        
+
         // Mark both players as in this room
         this.playerRooms.set(player1.playerId, room.id)
         this.playerRooms.set(player2.playerId, room.id)
 
-        console.log(`[QuickMatch] Room created`, {
-          evt: 'quickMatch.roomCreated',
-          roomId: room.id,
-          roomCode: room.code,
-          players: [player1.playerId, player2.playerId],
-          correlationId
-        })
+        logger.info('QuickMatch room created', { roomCode: room.code, correlationId })
 
         return {
           type: 'paired',
@@ -94,12 +73,7 @@ export class Matchmaker {
         }
       }
 
-      console.log(`[QuickMatch] Player queued`, {
-        evt: 'quickMatch.queued',
-        playerId,
-        correlationId,
-        queueLen: this.queue.length
-      })
+      logger.debug('QuickMatch queued', { playerId, correlationId, queueLen: this.queue.length })
 
       return {
         type: 'queued',
@@ -114,11 +88,7 @@ export class Matchmaker {
       this.queue = this.queue.filter(req => req.playerId !== playerId)
       
       if (beforeLen !== this.queue.length) {
-        console.log(`[QuickMatch] Player removed from queue`, {
-          evt: 'quickMatch.removedFromQueue',
-          playerId,
-          queueLen: this.queue.length
-        })
+        logger.debug('QuickMatch removed from queue', { playerId, queueLen: this.queue.length })
       }
     })
   }
@@ -131,10 +101,7 @@ export class Matchmaker {
         room.players = room.players.filter(p => p.id !== playerId)
         if (room.players.length === 0 && room.status === 'waiting') {
           this.rooms.delete(existingRoomId)
-          console.log(`[QuickMatch] Empty room removed`, {
-            evt: 'quickMatch.roomRemoved',
-            roomId: existingRoomId
-          })
+          logger.debug('QuickMatch empty room removed', { roomId: existingRoomId })
         }
       }
       this.playerRooms.delete(playerId)
@@ -190,10 +157,7 @@ export class Matchmaker {
     }
     
     const timeout = setTimeout(() => {
-      console.log(`[QuickMatch] Watchdog triggered for room`, {
-        evt: 'quickMatch.watchdogTriggered',
-        roomId
-      })
+      logger.debug('QuickMatch watchdog triggered', { roomId })
       callback()
       this.watchdogs.delete(roomId)
     }, 2000)

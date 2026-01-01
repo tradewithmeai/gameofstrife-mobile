@@ -11,6 +11,7 @@ import {
   countLivingCells,
   indexToPosition
 } from './gameOfStrifeTypes.js'
+import { logger } from '../utils/logger.js'
 
 export class GameOfStrifeEngine implements GameEngine {
   private settings: GameOfStrifeSettings
@@ -282,37 +283,16 @@ export class GameOfStrifeEngine implements GameEngine {
       player0: countLivingCells(currentBoard, 0),
       player1: countLivingCells(currentBoard, 1)
     }
-    console.log(JSON.stringify({
-      evt: 'conway.start',
-      generation: 0,
-      player0Cells: initialCounts.player0,
-      player1Cells: initialCounts.player1
-    }))
+    logger.debug('Conway simulation start', { P0: initialCounts.player0, P1: initialCounts.player1 })
 
     // Run simulation until stable or max generations reached
     while (generation < maxGenerations) {
       const nextBoard = this.simulateOneGeneration(currentBoard)
       generation++
 
-      // Log generation result
-      const genCounts = {
-        player0: countLivingCells(nextBoard, 0),
-        player1: countLivingCells(nextBoard, 1)
-      }
-      console.log(JSON.stringify({
-        evt: 'conway.generation',
-        generation,
-        player0Cells: genCounts.player0,
-        player1Cells: genCounts.player1
-      }))
-
       // Check if board has stabilized (no changes)
       if (this.boardsEqual(currentBoard, nextBoard)) {
-        console.log(JSON.stringify({
-          evt: 'conway.stable',
-          generation,
-          reason: 'no_changes'
-        }))
+        logger.debug('Conway stable', { generation })
         break
       }
 
@@ -325,11 +305,7 @@ export class GameOfStrifeEngine implements GameEngine {
       player1: countLivingCells(currentBoard, 1)
     }
 
-    console.log(JSON.stringify({
-      evt: 'conway.complete',
-      generation,
-      finalScores
-    }))
+    logger.debug('Conway complete', { generation, P0: finalScores.player0, P1: finalScores.player1 })
 
     return {
       ...state,

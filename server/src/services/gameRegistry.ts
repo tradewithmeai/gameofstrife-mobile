@@ -3,6 +3,8 @@
  * Shared singleton instance to prevent mapping inconsistencies
  */
 
+import { logger } from '../utils/logger.js'
+
 class GameRegistryClass {
   private roomByMatch = new Map<string, string>()
   private matchByRoom = new Map<string, string>()
@@ -24,26 +26,14 @@ class GameRegistryClass {
     this.roomByMatch.set(matchId, roomId)
     this.matchByRoom.set(roomId, matchId)
 
-    console.log(JSON.stringify({
-      evt: 'gameRegistry.setMapping',
-      matchId,
-      roomId,
-      totalMappings: this.roomByMatch.size
-    }))
+    logger.debug('Registry mapping set', { matchId, roomId, total: this.roomByMatch.size })
   }
 
   removeMappings(roomId: string, matchId: string): void {
     const hadRoomMapping = this.roomByMatch.delete(matchId)
     const hadMatchMapping = this.matchByRoom.delete(roomId)
 
-    console.log(JSON.stringify({
-      evt: 'gameRegistry.removeMappings',
-      matchId,
-      roomId,
-      hadRoomMapping,
-      hadMatchMapping,
-      remainingMappings: this.roomByMatch.size
-    }))
+    logger.debug('Registry mappings removed', { matchId, roomId, remaining: this.roomByMatch.size })
   }
 
   removeMappingsForMatch(matchId: string): void {
@@ -72,7 +62,7 @@ class GameRegistryClass {
   clear(): void {
     this.roomByMatch.clear()
     this.matchByRoom.clear()
-    console.log(JSON.stringify({ evt: 'gameRegistry.cleared' }))
+    logger.debug('Registry cleared')
   }
 
   getStats(): { totalMappings: number; rooms: string[]; matches: string[] } {

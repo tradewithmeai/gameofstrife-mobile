@@ -1,5 +1,6 @@
 import { Room, Player, Match, RoomUpdate, QuickMatchRequest } from '../types/room.js'
 import { GameRegistry } from './gameRegistry.js'
+import { logger } from '../utils/logger.js'
 
 export class RoomManager {
   private rooms = new Map<string, Room>()
@@ -37,7 +38,7 @@ export class RoomManager {
     if (roomCode === 'TEST-123456') {
       const existingRoom = this.findRoomByCode(roomCode)
       if (existingRoom) {
-        console.log(`[TESTING] Deleting stale test room: ${existingRoom.id}`)
+        logger.debug('Deleting stale test room', { roomId: existingRoom.id })
         // Remove all players from the old room
         existingRoom.players.forEach(player => {
           this.playerRooms.delete(player.id)
@@ -191,7 +192,7 @@ export class RoomManager {
 
     room.players = creator ? [creator] : []
 
-    console.log(`Match ended in room ${room.code}, reset to waiting with ${room.players.length} player(s)`)
+    logger.debug('Room reset after match', { code: room.code, players: room.players.length })
 
     return room
   }
@@ -260,7 +261,7 @@ export class RoomManager {
         
         // Remove room
         this.rooms.delete(roomId)
-        console.log(`Cleaned up idle room: ${roomId} (${room.code})`)
+        logger.debug('Cleaned up idle room', { roomId, code: room.code })
       }
     }
 

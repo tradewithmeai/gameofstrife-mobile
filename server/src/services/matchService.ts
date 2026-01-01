@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { GameRegistry } from './gameRegistry.js'
 import { GameEngine } from '../engine/types.js'
 import { GameOfStrifeEngine } from '../engine/gameOfStrifeEngine.js'
+import { logger } from '../utils/logger.js'
 
 // Note: Winning line logic now handled by GameEngine
 
@@ -122,7 +123,7 @@ export class MatchService {
     this.engine = new GameOfStrifeEngine()
     this.gameType = 'gameofstrife'
 
-    console.log('✅ Game of Strife engine loaded')
+    logger.info('Game of Strife engine loaded')
   }
 
   getMatchMode(): string {
@@ -162,12 +163,7 @@ export class MatchService {
     if (this.gameType === 'gameofstrife' && gameSettings) {
       // Create a new GameOfStrifeEngine with custom settings for this match
       matchEngine = new GameOfStrifeEngine(gameSettings)
-      console.log(JSON.stringify({
-        evt: 'match.engine.custom',
-        matchId,
-        gameType: this.gameType,
-        settings: gameSettings
-      }))
+      logger.debug('Custom engine created', { matchId, gameType: this.gameType, settings: gameSettings })
     } else {
       // Use default engine instance
       matchEngine = this.engine
@@ -242,18 +238,7 @@ export class MatchService {
       throw new Error('Failed to set match-room mapping')
     }
 
-    console.log(JSON.stringify({
-      evt: 'match.init',
-      matchId, 
-      roomId,
-      winner: match.winner,
-      finishedAt: match.finishedAt,
-      version: match.version,
-      moves: match.moves.length,
-      status: match.status,
-      starter: match.currentTurn,
-      currentTurn: match.currentTurn
-    }))
+    logger.match('start', matchId, { roomId, status: match.status, turn: match.currentTurn })
     return match
   }
 
@@ -267,12 +252,7 @@ export class MatchService {
     const col = squareId % boardSize
     const seat = match?.playerSeats.get(playerId)
 
-    console.log(`[MatchService] ===== CLAIM ATTEMPT =====`)
-    console.log(`[MatchService] Player: ${playerId} (${seat})`)
-    console.log(`[MatchService] Position: squareId=${squareId} → row=${row}, col=${col}`)
-    console.log(`[MatchService] Board size: ${boardSize}x${boardSize}`)
-    console.log(`[MatchService] Selection ID: ${selectionId}`)
-    console.log(`[MatchService] ============================`)
+    logger.debug(`Claim attempt`, { matchId, playerId, seat, squareId, row, col, selectionId })
 
     if (!match) {
       return { success: false, reason: 'match_finished' }
@@ -286,35 +266,20 @@ export class MatchService {
     return await mutex.runExclusive(async () => {
       // Check if game is still active
       if (match.status !== 'active') {
-        // Log post-finish claim rejection  
-        console.log(JSON.stringify({
-          evt: 'claim.reject',
-          reason: 'match_finished',
-          matchId,
-          squareId
-        }))
+        logger.claim(matchId, playerId, seat || '?', squareId, 'rejected', 'match_finished')
         return { success: false, reason: 'match_finished' }
       }
 
       // Exactly-once result: no-op if winner already set or match finished (guardrail)
       if (match.winner !== null || match.finishedAt !== undefined) {
-        // Log post-finish claim rejection
-        console.log(JSON.stringify({
-          evt: 'claim.reject',
-          reason: 'match_finished',
-          matchId,
-          squareId,
-          currentStatus: match.status,
-          currentWinner: match.winner,
-          finishedAt: match.finishedAt?.toISOString()
-        }))
+        logger.claim(matchId, playerId, seat || '?', squareId, 'rejected', 'match_finished')
         return { success: false, reason: 'match_finished' }
       }
 
       // Check for duplicate selectionId (idempotency)
       const selections = this.processedSelections.get(matchId)!
       if (selections.has(selectionId)) {
-        console.log(`[MatchService] Duplicate selection rejected: ${selectionId}`)
+        logger.claim(matchId, playerId, seat || '?', squareId, 'rejected', 'duplicate')
         return { success: false, reason: 'duplicate_selection' }
       }
 
@@ -440,15 +405,7 @@ export class MatchService {
         match.engineState = gameResult.updatedState
       }
 
-      // Log result.decided for structured logging
-      console.log(JSON.stringify({
-        evt: 'result.decided',
-        matchId,
-        winner: gameResult.winner!,
-        line: gameResult.winningLine || null,
-        version: match.version,
-        finishedAt: match.finishedAt.toISOString()
-      }))
+      logger.match('end', matchId, { winner: gameResult.winner!, version: match.version })
       
       const resultType = gameResult.winner === 'draw' ? 'draw' : 'win'
       this.logClaimDecision({ evt: 'claim', matchId, squareId, seat: playerSeat, version: match.version, result: resultType })
@@ -483,16 +440,7 @@ export class MatchService {
     // Update rate limit
     this.updateRateLimit(matchId, playerId, selectionId)
 
-    // Log claim received
-    console.log(JSON.stringify({
-      evt: 'window.collect',
-      matchId,
-      windowId: match.currentWindowId,
-      seat: playerSeat,
-      squareId,
-      selectionId,
-      timestamp: new Date().toISOString()
-    }))
+    logger.debug('Simul claim buffered', { matchId, windowId: match.currentWindowId, seat: playerSeat, squareId })
 
     // Return success (claim is buffered, not immediately applied)
     return {
@@ -525,14 +473,7 @@ export class MatchService {
 
     const deadlineTs = Date.now() + this.simulWindowMs
 
-    console.log(JSON.stringify({
-      evt: 'window.open',
-      matchId,
-      windowId,
-      starterSeat,
-      deadlineTs,
-      duration: this.simulWindowMs
-    }))
+    logger.debug('Simul window opened', { matchId, windowId, starter: starterSeat })
 
     // Clear previous window's buffer
     this.pendingClaimBuffers.get(matchId)!.clear()
@@ -569,34 +510,11 @@ export class MatchService {
     const windowId = match.currentWindowId!
     const selections = this.processedSelections.get(matchId)!
 
-    console.log(JSON.stringify({
-      evt: 'window.resolve',
-      matchId,
-      windowId,
-      pendingClaims: Array.from(buffer.entries()).map(([seat, claim]) => ({
-        seat,
-        squareId: claim.squareId,
-        selectionId: claim.selectionId
-      }))
-    }))
+    logger.debug('Simul window resolving', { matchId, windowId, pending: buffer.size })
 
     const result = this.resolveWindowConflicts(match, buffer, selections)
 
-    console.log(JSON.stringify({
-      evt: 'window.apply',
-      matchId,
-      windowId,
-      applied: result.applied,
-      rejected: result.rejected
-    }))
-
-    console.log(JSON.stringify({
-      evt: 'window.close',
-      matchId,
-      windowId,
-      applied: result.applied.length,
-      rejected: result.rejected.length
-    }))
+    logger.debug('Simul window closed', { matchId, windowId, applied: result.applied.length, rejected: result.rejected.length })
 
     // Clear timeout and buffer
     if (match.windowTimeout) {
@@ -747,15 +665,8 @@ export class MatchService {
       match.winningLine = gameResult.winningLine || null
       match.finishedAt = new Date()
       match.currentTurn = null // Set to null when finished
-      
-      console.log(JSON.stringify({
-        evt: 'result.decided',
-        matchId: match.id,
-        winner: gameResult.winner!,
-        line: gameResult.winningLine || null,
-        version: match.version,
-        finishedAt: match.finishedAt.toISOString()
-      }))
+
+      logger.match('end', match.id, { winner: gameResult.winner!, version: match.version })
       return
     }
 
@@ -766,15 +677,8 @@ export class MatchService {
       match.winner = 'draw'
       match.finishedAt = new Date()
       match.currentTurn = null // Set to null when finished
-      
-      console.log(JSON.stringify({
-        evt: 'result.decided',
-        matchId: match.id,
-        winner: 'draw',
-        line: null,
-        version: match.version,
-        finishedAt: match.finishedAt.toISOString()
-      }))
+
+      logger.match('end', match.id, { winner: 'draw', version: match.version })
     }
   }
 
@@ -837,16 +741,8 @@ export class MatchService {
     reason?: string
     result?: 'win' | 'draw'
   }): void {
-    console.log(JSON.stringify({
-      evt: params.evt,
-      matchId: params.matchId,
-      seat: params.seat,
-      squareId: params.squareId,
-      version: params.version,
-      ...(params.reason && { reason: params.reason }),
-      ...(params.result && { result: params.result }),
-      timestamp: new Date().toISOString(),
-    }))
+    const status = params.reason ? 'rejected' : 'success'
+    logger.claim(params.matchId, '', params.seat || '?', params.squareId, status, params.reason || params.result)
   }
 
   getMatch(matchId: string): MatchState | undefined {
@@ -887,13 +783,13 @@ export class MatchService {
           requests: new Set([playerId]),
           timeout: setTimeout(() => {
             this.rematchStates.delete(matchId)
-            console.log(JSON.stringify({ evt: 'rematch.timeout', matchId }))
+            logger.debug('Rematch timeout', { matchId })
           }, 60000),
           expires
         }
         this.rematchStates.set(matchId, rematchState)
-        
-        console.log(JSON.stringify({ evt: 'rematch.request', matchId, playerId, expires: expires.toISOString() }))
+
+        logger.debug('Rematch requested', { matchId, playerId })
         return { type: 'waiting' }
       }
 
@@ -914,18 +810,13 @@ export class MatchService {
 
         // Create new match with flipped starter and same settings
         const newMatch = this.createMatch(match.roomId, flippedPlayers, match.gameSettings)
-        
-        console.log(JSON.stringify({
-          evt: 'rematch.start',
-          oldMatchId: matchId,
-          newMatchId: newMatch.id,
-          starter: 'P1' // First player in flipped array becomes P1
-        }))
-        
+
+        logger.match('rematch', newMatch.id, { oldMatch: matchId.slice(0, 8) })
+
         return { type: 'matched', newMatchId: newMatch.id }
       }
-      
-      console.log(JSON.stringify({ evt: 'rematch.waiting', matchId, playerId }))
+
+      logger.debug('Rematch waiting', { matchId, playerId })
       return { type: 'waiting' }
     })
   }
@@ -948,12 +839,8 @@ export class MatchService {
     this.matchMutexes.delete(matchId)
     this.processedSelections.delete(matchId)
     this.rateLimits.delete(matchId)
-    
-    console.log(JSON.stringify({
-      evt: 'match.cleanup',
-      matchId,
-      roomId: match?.roomId || 'unknown'
-    }))
+
+    logger.debug('Match cleaned up', { matchId, roomId: match?.roomId })
   }
 
   // Debug methods

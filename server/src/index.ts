@@ -6,12 +6,13 @@ import { RoomManager } from './services/roomManager.js'
 import { MatchService } from './services/matchService.js'
 import { GameRegistry } from './services/gameRegistry.js'
 import { ClientToServerEvents, ServerToClientEvents, Player } from './types/room.js'
+import { logger } from './utils/logger.js'
 
 // Game of Strife Mobile Backend
-console.log('='.repeat(50))
-console.log('Game of Strife - Mobile Backend')
-console.log('ENGINE: Game of Strife (hardcoded)')
-console.log('='.repeat(50))
+logger.info('='.repeat(50))
+logger.info('Game of Strife - Mobile Backend')
+logger.info('ENGINE: Game of Strife (hardcoded)')
+logger.info('='.repeat(50))
 
 // Single namespace constant
 export const NAMESPACE = '/game'
@@ -63,7 +64,7 @@ fastify.get('/health', async (_request, _reply) => {
 const gameNamespace = fastify.io.of(NAMESPACE)
 
 gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
-  console.log(`Client connected: ${socket.id}`)
+  logger.connection('connect', socket.id)
 
   socket.emit('welcome', 'Connected to Game of Strife')
 
@@ -82,7 +83,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
       isPublic: room.isPublic,
       gameSettings: room.gameSettings
     })
-    console.log(`Room created: ${room.code} by ${socket.id}`)
+    logger.room('create', room.code, socket.id)
   })
 
   // Join room
@@ -147,7 +148,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
           }
         })
 
-        console.log(`Match started: ${matchState.id} in room ${room.code}`)
+        logger.match('start', matchState.id, { room: room.code })
       }
     }
   })
@@ -195,7 +196,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
         type: 'player_left'
       })
 
-      console.log(`Player ${socket.id} left room ${room.code}`)
+      logger.room('leave', room.code, socket.id)
     }
 
     // Confirm to the leaving player
@@ -305,7 +306,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
         }
       })
 
-      console.log(`Rematch started: ${newMatch.id} in room ${room.code}`)
+      logger.match('rematch', newMatch.id, { room: room.code })
     }
   })
 
@@ -316,7 +317,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
 
   // Disconnect
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`)
+    logger.connection('disconnect', socket.id)
     roomManager.leaveRoom(socket.id)
   })
 })
@@ -324,10 +325,10 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
 // Start server
 fastify.listen({ port: PORT, host: HOST }, (err, address) => {
   if (err) {
-    console.error(err)
+    logger.error('Failed to start server', { error: err.message })
     process.exit(1)
   }
-  console.log(`✅ Server listening on ${address}`)
-  console.log(`✅ Socket.IO namespace: ${NAMESPACE}`)
-  console.log(`✅ Match mode: ${MATCH_MODE}`)
+  logger.info(`Server listening on ${address}`)
+  logger.info(`Socket.IO namespace: ${NAMESPACE}`)
+  logger.info(`Match mode: ${MATCH_MODE}`)
 })
