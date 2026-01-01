@@ -259,13 +259,20 @@ export class MatchService {
 
   async claimSquare(request: ClaimRequest): Promise<ClaimResult> {
     const { matchId, squareId, selectionId, playerId } = request
-    
-    console.log(`[MatchService] Claim attempt`, {
-      matchId,
-      squareId,
-      selectionId,
-      playerId,
-    })
+
+    // Log with row/col conversion for debugging
+    const match = this.matches.get(matchId)
+    const boardSize = (match?.engineState as any)?.boardSize || Math.sqrt(match?.board.length || 9)
+    const row = Math.floor(squareId / boardSize)
+    const col = squareId % boardSize
+    const seat = match?.playerSeats.get(playerId)
+
+    console.log(`[MatchService] ===== CLAIM ATTEMPT =====`)
+    console.log(`[MatchService] Player: ${playerId} (${seat})`)
+    console.log(`[MatchService] Position: squareId=${squareId} → row=${row}, col=${col}`)
+    console.log(`[MatchService] Board size: ${boardSize}x${boardSize}`)
+    console.log(`[MatchService] Selection ID: ${selectionId}`)
+    console.log(`[MatchService] ============================`)
 
     const match = this.matches.get(matchId)
     if (!match) {
