@@ -91,8 +91,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Measure board layout on mount and when it changes
   const handleLayout = useCallback(() => {
-    boardRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      boardLayout.current = { x: pageX, y: pageY, width, height };
+    boardRef.current?.measureInWindow((x, y, width, height) => {
+      boardLayout.current = { x, y, width, height };
+      console.log('[GameBoard] Board measured in window:', { x, y, width, height });
     });
   }, []);
 
@@ -103,8 +104,8 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // Ensure board is measured (backup in case onLayout didn't fire)
     if (!boardLayout.current) {
-      boardRef.current?.measure((x, y, width, height, pageX, pageY) => {
-        boardLayout.current = { x: pageX, y: pageY, width, height };
+      boardRef.current?.measureInWindow((x, y, width, height) => {
+        boardLayout.current = { x, y, width, height };
       });
     }
 
