@@ -35,7 +35,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const detectionAttempted = useRef(false);
 
   // Detection threshold constant
-  const LOCATION_XY_MIN_THRESHOLD = 30;
+  const LOCATION_XY_MIN_THRESHOLD = 1; // Allow clicks near top-left corner
 
   // Log component render to verify code is loaded
   console.log('[GameBoard] Component rendered with runtime detection enabled');
