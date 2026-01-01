@@ -90,18 +90,24 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     devLog('[GameBoard] Validation:', { locationXYValid, pageXYValid });
 
-    // Add sanity check: if both methods validate but disagree significantly,
-    // locationXY is likely broken (happens on some devices like Chromebook)
+    // Add sanity check: if locationXY is stuck near origin while pageXY varies,
+    // locationXY is broken (happens on some devices like Chromebook)
     if (locationXYValid && pageXYValid) {
       const xDiff = Math.abs(locationMethod.x - pageMethod.x);
       const yDiff = Math.abs(locationMethod.y - pageMethod.y);
       const maxDiff = Math.max(xDiff, yDiff);
 
-      if (maxDiff > 50) {
-        console.log('[GameBoard] DETECTED: locationXY/pageXY disagree significantly, using pageXY (emulator/Chromebook)');
-        devLog('[GameBoard] Coordinate disagreement:', {
+      // Check if locationXY is suspiciously close to origin
+      const locationDistance = Math.sqrt(locationMethod.x ** 2 + locationMethod.y ** 2);
+
+      // If locationXY gives small values near origin BUT pageXY differs significantly,
+      // locationXY is likely broken (stuck at constant small values)
+      if (locationDistance < 30 && maxDiff > 30) {
+        console.log('[GameBoard] DETECTED: locationXY stuck near origin, using pageXY (Chromebook)');
+        devLog('[GameBoard] locationXY appears broken:', {
           locationXY: locationMethod,
           pageXY: pageMethod,
+          locationDistance,
           difference: { x: xDiff, y: yDiff, max: maxDiff }
         });
         return 'pageXY';
