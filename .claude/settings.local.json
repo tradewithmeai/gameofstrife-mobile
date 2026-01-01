@@ -8,7 +8,8 @@
       "WebFetch(domain:gameofstrife-mobile-production.up.railway.app)",
       "Bash(npm start)",
       "Bash(npx expo install:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

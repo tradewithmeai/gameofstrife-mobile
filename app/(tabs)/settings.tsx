@@ -1,7 +1,8 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, TextInput, Chip } from 'react-native-paper';
 import { useState } from 'react';
 import { useSettingsStore, DEFAULT_GAME_SETTINGS } from '../../stores/settingsStore';
+import { getLogs, shareLogs, clearLogs, DEV_MODE } from '../../utils/devMode';
 
 export default function SettingsScreen() {
   const { settings, setSettings, resetToDefaults, isLoading } = useSettingsStore();
@@ -51,6 +52,24 @@ export default function SettingsScreen() {
     setSurvivalRules(DEFAULT_GAME_SETTINGS.survivalRules.join(','));
     setSuperpowerPercentage(DEFAULT_GAME_SETTINGS.superpowerPercentage);
     setEnabledSuperpowers(DEFAULT_GAME_SETTINGS.enabledSuperpowers);
+  };
+
+  const handleViewLogs = async () => {
+    const logs = await getLogs();
+    Alert.alert(
+      'Debug Logs',
+      logs.length > 1000 ? logs.slice(-1000) + '\n\n...(showing last 1000 chars)' : logs,
+      [
+        { text: 'Share', onPress: shareLogs },
+        { text: 'Clear', onPress: handleClearLogs, style: 'destructive' },
+        { text: 'Close', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleClearLogs = async () => {
+    await clearLogs();
+    Alert.alert('Success', 'Logs cleared');
   };
 
   return (
@@ -191,6 +210,46 @@ export default function SettingsScreen() {
           </Card.Content>
         </Card>
 
+        {/* Debug Logs (DEV only) */}
+        {DEV_MODE && (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Debug Logs
+              </Text>
+              <Text variant="bodySmall" style={styles.helpText}>
+                Verbose logs are saved to file to reduce console spam
+              </Text>
+              <View style={styles.sizeButtons}>
+                <Button
+                  mode="outlined"
+                  onPress={handleViewLogs}
+                  icon="file-document"
+                  style={styles.logButton}
+                >
+                  View Logs
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={shareLogs}
+                  icon="share"
+                  style={styles.logButton}
+                >
+                  Share Logs
+                </Button>
+                <Button
+                  mode="outlined"
+                  onPress={handleClearLogs}
+                  icon="delete"
+                  style={styles.logButton}
+                >
+                  Clear Logs
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Action Buttons */}
         <View style={styles.actions}>
           <Button
@@ -288,6 +347,10 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     borderColor: '#6B7280',
+  },
+  logButton: {
+    flex: 1,
+    marginTop: 8,
   },
   marginTop: {
     marginTop: 16,

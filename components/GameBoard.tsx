@@ -39,7 +39,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const LOCATION_XY_MIN_THRESHOLD = 1; // Allow clicks near top-left corner
 
   // Log component render to verify code is loaded
-  console.log('[GameBoard] Component rendered with runtime detection enabled');
+  devLog('[GameBoard] Component rendered with runtime detection enabled');
 
   // Extract coordinates using both methods for comparison/detection
   const extractBothCoordinateMethods = useCallback((
@@ -92,10 +92,10 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // Prefer locationXY if both valid (more direct, less calculation)
     if (locationXYValid) {
-      console.log('[GameBoard] DETECTED: locationXY method (real device)');
+      devLog('[GameBoard] DETECTED: locationXY method (real device)');
       return 'locationXY';
     } else if (pageXYValid) {
-      console.log('[GameBoard] DETECTED: pageXY method (emulator)');
+      devLog('[GameBoard] DETECTED: pageXY method (emulator)');
       return 'pageXY';
     } else {
       console.warn('[GameBoard] WARNING: Neither method validated, defaulting to pageXY');
@@ -132,7 +132,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // Validate that touch is within the usable board area (not in the border)
     if (adjustedX < 0 || adjustedY < 0 || adjustedX >= usableWidth || adjustedY >= usableHeight) {
-      console.log('[GameBoard] Touch outside usable board area (in border or beyond):', {
+      devLog('[GameBoard] Touch outside usable board area (in border or beyond):', {
         adjustedX, adjustedY, usableWidth, usableHeight
       });
       return null;
@@ -161,27 +161,27 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // Check bounds
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
-      console.log('[GameBoard] Cell valid!');
+      devLog('[GameBoard] Cell valid!');
       return { row, col };
     }
 
-    console.log('[GameBoard] Cell out of bounds:', { row, col, boardSize });
+    devLog('[GameBoard] Cell out of bounds:', { row, col, boardSize });
     return null;
   }, [boardSize]);
 
   // Handle token placement during drag
   const handlePlacement = useCallback((row: number, col: number) => {
-    console.log('[GameBoard] handlePlacement called:', { row, col, isPlacementStage, isMyTurn, isFinished });
+    devLog('[GameBoard] handlePlacement called:', { row, col, isPlacementStage, isMyTurn, isFinished });
 
     if (!isPlacementStage || !isMyTurn || isFinished) {
-      console.log('[GameBoard] Placement blocked by stage/turn/finish check');
+      devLog('[GameBoard] Placement blocked by stage/turn/finish check');
       return;
     }
 
     const cellKey = `${row}-${col}`;
     // Avoid placing multiple tokens on the same cell during one drag
     if (lastPlacedCell.current === cellKey) {
-      console.log('[GameBoard] Same cell as last placement, skipping');
+      devLog('[GameBoard] Same cell as last placement, skipping');
       return;
     }
 
@@ -191,7 +191,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     const myPlayerIndex = mySeat === 'P1' ? 0 : 1;
     const isMyToken = cellOccupied && cell.player === myPlayerIndex;
 
-    console.log('[GameBoard] Cell check:', {
+    devLog('[GameBoard] Cell check:', {
       cellOccupied,
       player: cell?.player,
       myPlayerIndex,
@@ -200,7 +200,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // If clicking own token, remove it (backend handles this automatically)
     if (isMyToken) {
-      console.log('[GameBoard] Removing own token at position:', row * boardSize + col);
+      devLog('[GameBoard] Removing own token at position:', row * boardSize + col);
       onGameAction({
         type: 'PLACE_TOKEN',  // Use PLACE_TOKEN - backend detects removal automatically
         payload: { position: row * boardSize + col, row, col },
@@ -212,7 +212,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // If cell occupied by opponent, skip
     if (cellOccupied) {
-      console.log('[GameBoard] Cell occupied by opponent, skipping');
+      devLog('[GameBoard] Cell occupied by opponent, skipping');
       return;
     }
 
@@ -221,7 +221,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     // Convert to flat board position for socket system
     const position = row * boardSize + col;
 
-    console.log('[GameBoard] Calling onGameAction with position:', position);
+    devLog('[GameBoard] Calling onGameAction with position:', position);
     onGameAction({
       type: 'PLACE_TOKEN',
       payload: { position, row, col },
@@ -236,7 +236,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       const BOARD_BORDER = 2;
       const usableWidth = width - (BOARD_BORDER * 2);
       const calculatedCellSize = usableWidth / boardSize;
-      console.log('[GameBoard] Board measured:', {
+      devLog('[GameBoard] Board measured:', {
         x, y, width, height,
         boardSize,
         borderWidth: BOARD_BORDER,
@@ -249,7 +249,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Touch event handler with runtime coordinate method detection
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    console.log('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
+    devLog('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
     if (!isPlacementStage || !isMyTurn) return;
 
     setIsDragging(true);
@@ -276,7 +276,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         detectionAttempted.current = true;
 
         const { x, y } = getCoordinatesForMethod(touch, boardX, boardY, detectedMethod);
-        console.log('[GameBoard] Using detected method:', detectedMethod, { x, y });
+        devLog('[GameBoard] Using detected method:', detectedMethod, { x, y });
 
         const cell = getCellFromPosition(x, y, width, height);
         if (cell) {
@@ -366,7 +366,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   useEffect(() => {
     detectionAttempted.current = false;
     setTouchMethod(null);
-    console.log('[GameBoard] Touch method detection reset (board size changed)');
+    devLog('[GameBoard] Touch method detection reset (board size changed)');
   }, [boardSize]);
 
   // Calculate board dimensions - move outside JSX so we can use in handlers

@@ -2,6 +2,8 @@ import { Stack } from 'expo-router';
 import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { initLogging } from '../utils/devMode';
 
 const theme = {
   ...MD3DarkTheme,
@@ -15,6 +17,11 @@ const theme = {
 };
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Initialize file logging on app start
+    initLogging();
+  }, []);
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <PaperProvider theme={theme}>
