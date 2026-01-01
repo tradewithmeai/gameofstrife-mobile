@@ -57,20 +57,35 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Handle token placement during drag
   const handlePlacement = useCallback((row: number, col: number) => {
-    if (!isPlacementStage || !isMyTurn || isFinished) return;
+    console.log('[GameBoard] handlePlacement called:', { row, col, isPlacementStage, isMyTurn, isFinished });
+
+    if (!isPlacementStage || !isMyTurn || isFinished) {
+      console.log('[GameBoard] Placement blocked by stage/turn/finish check');
+      return;
+    }
 
     const cellKey = `${row}-${col}`;
     // Avoid placing multiple tokens on the same cell during one drag
-    if (lastPlacedCell.current === cellKey) return;
+    if (lastPlacedCell.current === cellKey) {
+      console.log('[GameBoard] Same cell as last placement, skipping');
+      return;
+    }
 
     // Check if cell is already occupied
-    if (board[row] && board[row][col] && board[row][col].player !== null) return;
+    const cellOccupied = board[row] && board[row][col] && board[row][col].player !== null;
+    console.log('[GameBoard] Cell occupied check:', { cellOccupied, player: board[row]?.[col]?.player });
+
+    if (cellOccupied) {
+      console.log('[GameBoard] Cell already occupied, skipping');
+      return;
+    }
 
     lastPlacedCell.current = cellKey;
 
     // Convert to flat board position for socket system
     const position = row * boardSize + col;
 
+    console.log('[GameBoard] Calling onGameAction with position:', position);
     onGameAction({
       type: 'PLACE_TOKEN',
       payload: { position, row, col },
