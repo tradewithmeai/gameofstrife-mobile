@@ -132,8 +132,8 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // Validate that touch is within the usable board area (not in the border)
     if (adjustedX < 0 || adjustedY < 0 || adjustedX >= usableWidth || adjustedY >= usableHeight) {
-      devLog('[GameBoard] Touch outside usable board area (in border or beyond):', {
-        adjustedX, adjustedY, usableWidth, usableHeight
+      console.log('[GameBoard] REJECTED - Touch outside usable area:', {
+        locationX, locationY, adjustedX, adjustedY, usableWidth, usableHeight
       });
       return null;
     }
@@ -171,10 +171,10 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Handle token placement during drag
   const handlePlacement = useCallback((row: number, col: number) => {
-    devLog('[GameBoard] handlePlacement called:', { row, col, isPlacementStage, isMyTurn, isFinished });
+    console.log('[GameBoard] handlePlacement called:', { row, col, isPlacementStage, isMyTurn, isFinished });
 
     if (!isPlacementStage || !isMyTurn || isFinished) {
-      devLog('[GameBoard] Placement blocked by stage/turn/finish check');
+      console.log('[GameBoard] Placement blocked by stage/turn/finish check');
       return;
     }
 
@@ -212,7 +212,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     // If cell occupied by opponent, skip
     if (cellOccupied) {
-      devLog('[GameBoard] Cell occupied by opponent, skipping');
+      console.log('[GameBoard] Cell occupied by opponent, skipping');
       return;
     }
 
@@ -249,7 +249,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Touch event handler with runtime coordinate method detection
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    devLog('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
+    console.log('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
     if (!isPlacementStage || !isMyTurn) return;
 
     setIsDragging(true);
