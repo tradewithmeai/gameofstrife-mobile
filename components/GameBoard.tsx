@@ -122,9 +122,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     // Account for board border (2px on each side as defined in styles.board)
     const BOARD_BORDER_WIDTH = 2;
 
-    // Adjust for border offset
-    const adjustedX = locationX - BOARD_BORDER_WIDTH;
-    const adjustedY = locationY - BOARD_BORDER_WIDTH;
+    // Adjust for border offset and clamp to prevent negative coordinates
+    const adjustedX = Math.max(0, locationX - BOARD_BORDER_WIDTH);
+    const adjustedY = Math.max(0, locationY - BOARD_BORDER_WIDTH);
 
     devLog('[GameBoard] Touch calculation:', {
       locationX, locationY,
