@@ -56,7 +56,12 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     const col = Math.floor(adjustedX / cellSize);
     const row = Math.floor(adjustedY / cellSize);
 
-    console.log('[GameBoard] Calculated cell:', { row, col, cellSize: cellSize.toFixed(2) });
+    console.log('[GameBoard] Calculated cell:', {
+      row,
+      col,
+      cellSize: cellSize.toFixed(2),
+      colBoundary: `${(col * cellSize).toFixed(1)}-${((col + 1) * cellSize).toFixed(1)}px`
+    });
 
     // Check bounds
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
@@ -233,7 +238,10 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Cell size: {(boardDimension/boardSize).toFixed(1)}px
       </Text>
       <Text style={{ color: '#FBBF24', fontSize: 12, marginBottom: 4, fontWeight: 'bold' }}>
-        ⚠️ Cells are TINY ({(boardDimension/boardSize).toFixed(1)}px)! Tap carefully in center of square
+        Cell size: {(boardDimension/boardSize).toFixed(1)}px | Tap in CENTER of square
+      </Text>
+      <Text style={{ color: '#10B981', fontSize: 10, marginBottom: 4 }}>
+        Col 0: 0-{(boardDimension/boardSize).toFixed(0)}px | Col 1: {(boardDimension/boardSize).toFixed(0)}-{(2*boardDimension/boardSize).toFixed(0)}px | Col 2: {(2*boardDimension/boardSize).toFixed(0)}-{(3*boardDimension/boardSize).toFixed(0)}px
       </Text>
       <View
         ref={boardRef}
