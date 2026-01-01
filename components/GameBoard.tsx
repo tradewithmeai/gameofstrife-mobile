@@ -31,123 +31,8 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const lastPlacedCell = useRef<string | null>(null);
   const boardLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
-  // Runtime detection state for touch coordinate method
-  const [touchMethod, setTouchMethod] = useState<'locationXY' | 'pageXY' | null>(null);
-  const detectionAttempted = useRef(false);
-
-  // Detection threshold constant
-  const LOCATION_XY_MIN_THRESHOLD = 1; // Allow clicks near top-left corner
-
   // Log component render to verify code is loaded
-  devLog('[GameBoard] Component rendered with runtime detection enabled');
-
-  // Extract coordinates using both methods for comparison/detection
-  const extractBothCoordinateMethods = useCallback((
-    touch: any,
-    boardX: number,
-    boardY: number
-  ): { locationMethod: { x: number; y: number }, pageMethod: { x: number; y: number } } => {
-    return {
-      locationMethod: {
-        x: touch.locationX,
-        y: touch.locationY
-      },
-      pageMethod: {
-        x: touch.pageX - boardX,
-        y: touch.pageY - boardY
-      }
-    };
-  }, []);
-
-  // Detect which touch coordinate method works for this device
-  const detectTouchMethod = useCallback((
-    coords: { locationMethod: { x: number; y: number }, pageMethod: { x: number; y: number } },
-    boardWidth: number,
-    boardHeight: number
-  ): 'locationXY' | 'pageXY' => {
-    const { locationMethod, pageMethod } = coords;
-
-    devLog('[GameBoard] Touch method detection:', {
-      locationXY: locationMethod,
-      pageXY: pageMethod,
-      boardDimensions: { width: boardWidth, height: boardHeight }
-    });
-
-    // Test if locationX/Y are within board bounds and above threshold
-    const locationXYValid =
-      locationMethod.x >= 0 &&
-      locationMethod.x <= boardWidth &&
-      locationMethod.y >= 0 &&
-      locationMethod.y <= boardHeight &&
-      (locationMethod.x > LOCATION_XY_MIN_THRESHOLD || locationMethod.y > LOCATION_XY_MIN_THRESHOLD);
-
-    // Test if pageX/Y (after offset) are within board bounds
-    const pageXYValid =
-      pageMethod.x >= 0 &&
-      pageMethod.x <= boardWidth &&
-      pageMethod.y >= 0 &&
-      pageMethod.y <= boardHeight;
-
-    devLog('[GameBoard] Validation:', { locationXYValid, pageXYValid });
-
-    // Add sanity check: if locationXY is stuck near origin while pageXY varies,
-    // locationXY is broken (happens on some devices like Chromebook)
-    if (locationXYValid && pageXYValid) {
-      const xDiff = Math.abs(locationMethod.x - pageMethod.x);
-      const yDiff = Math.abs(locationMethod.y - pageMethod.y);
-      const maxDiff = Math.max(xDiff, yDiff);
-
-      // Check if locationXY is suspiciously close to origin
-      const locationDistance = Math.sqrt(locationMethod.x ** 2 + locationMethod.y ** 2);
-
-      console.log('[GameBoard] Detection check:', {
-        locationXY: locationMethod,
-        pageXY: pageMethod,
-        locationDistance: locationDistance.toFixed(2),
-        maxDiff: maxDiff.toFixed(2),
-        willTrigger: locationDistance < 20 && maxDiff > 100
-      });
-
-      // More restrictive check: only trigger if locationXY is VERY close to origin
-      // AND pageXY differs by a LARGE amount (Chromebook pattern: ~14px vs 175-323px)
-      if (locationDistance < 20 && maxDiff > 100) {
-        console.log('[GameBoard] DETECTED: locationXY stuck near origin, using pageXY (Chromebook)');
-        devLog('[GameBoard] locationXY appears broken:', {
-          locationXY: locationMethod,
-          pageXY: pageMethod,
-          locationDistance,
-          difference: { x: xDiff, y: yDiff, max: maxDiff }
-        });
-        return 'pageXY';
-      }
-    }
-
-    // Prefer locationXY if both valid and agree (more direct, less calculation)
-    if (locationXYValid) {
-      devLog('[GameBoard] DETECTED: locationXY method (real device)');
-      return 'locationXY';
-    } else if (pageXYValid) {
-      devLog('[GameBoard] DETECTED: pageXY method (emulator)');
-      return 'pageXY';
-    } else {
-      console.warn('[GameBoard] WARNING: Neither method validated, defaulting to pageXY');
-      return 'pageXY';
-    }
-  }, [LOCATION_XY_MIN_THRESHOLD]);
-
-  // Get coordinates based on detected method
-  const getCoordinatesForMethod = useCallback((
-    touch: any,
-    boardX: number,
-    boardY: number,
-    method: 'locationXY' | 'pageXY'
-  ): { x: number; y: number } => {
-    if (method === 'locationXY') {
-      return { x: touch.locationX, y: touch.locationY };
-    } else {
-      return { x: touch.pageX - boardX, y: touch.pageY - boardY };
-    }
-  }, []);
+  devLog('[GameBoard] Component rendered - using pageXY for all devices');
 
   // Get cell coordinates from touch position - using locationX/Y which is relative to the touched view
   const getCellFromPosition = useCallback((locationX: number, locationY: number, boardWidth: number, boardHeight: number): { row: number; col: number } | null => {
@@ -276,7 +161,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [boardSize]);
 
-  // Touch event handler with runtime coordinate method detection
+  // Touch event handler using pageXY coordinates (works on all devices)
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
     console.log('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
     if (!isPlacementStage || !isMyTurn) return;
@@ -286,60 +171,36 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     const touch = e.nativeEvent;
 
-    console.log('[GameBoard] Raw touch:', {
-      locationX: touch.locationX,
-      locationY: touch.locationY,
-      pageX: touch.pageX,
-      pageY: touch.pageY,
-      currentMethod: touchMethod
-    });
-
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      console.log('[GameBoard] Board position:', { boardX, boardY, width, height });
+      // Use pageXY method - works reliably on all devices
+      const x = touch.pageX - boardX;
+      const y = touch.pageY - boardY;
 
-      // First touch: detect which method to use
-      if (!detectionAttempted.current) {
-        const coords = extractBothCoordinateMethods(touch, boardX, boardY);
-        const detectedMethod = detectTouchMethod(coords, width, height);
-        setTouchMethod(detectedMethod);
-        detectionAttempted.current = true;
+      console.log('[GameBoard] Touch coords:', { pageX: touch.pageX, pageY: touch.pageY, boardX, boardY, x, y });
 
-        const { x, y } = getCoordinatesForMethod(touch, boardX, boardY, detectedMethod);
-        console.log('[GameBoard] Using detected method:', detectedMethod, { x, y });
-
-        const cell = getCellFromPosition(x, y, width, height);
-        console.log('[GameBoard] Calculated cell from touch:', { x, y, cell });
-        if (cell) {
-          handlePlacement(cell.row, cell.col);
-        }
-      } else if (touchMethod) {
-        // Subsequent touches: use cached method
-        const { x, y } = getCoordinatesForMethod(touch, boardX, boardY, touchMethod);
-        console.log('[GameBoard] Subsequent touch coords:', { x, y, method: touchMethod });
-
-        const cell = getCellFromPosition(x, y, width, height);
-        if (cell) {
-          handlePlacement(cell.row, cell.col);
-        }
+      const cell = getCellFromPosition(x, y, width, height);
+      console.log('[GameBoard] Calculated cell:', cell);
+      if (cell) {
+        handlePlacement(cell.row, cell.col);
       }
     });
-  }, [isPlacementStage, isMyTurn, touchMethod, extractBothCoordinateMethods,
-      detectTouchMethod, getCoordinatesForMethod, getCellFromPosition, handlePlacement]);
+  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
 
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
-    if (!isDragging || !isPlacementStage || !isMyTurn || !touchMethod) return;
+    if (!isDragging || !isPlacementStage || !isMyTurn) return;
 
     const touch = e.nativeEvent;
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      const { x, y } = getCoordinatesForMethod(touch, boardX, boardY, touchMethod);
+      const x = touch.pageX - boardX;
+      const y = touch.pageY - boardY;
+
       const cell = getCellFromPosition(x, y, width, height);
       if (cell) {
         handlePlacement(cell.row, cell.col);
       }
     });
-  }, [isDragging, isPlacementStage, isMyTurn, touchMethod, getCoordinatesForMethod,
-      getCellFromPosition, handlePlacement]);
+  }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -393,12 +254,6 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     return cellStyles;
   };
 
-  // Reset touch method detection when board size changes
-  useEffect(() => {
-    detectionAttempted.current = false;
-    setTouchMethod(null);
-    devLog('[GameBoard] Touch method detection reset (board size changed)');
-  }, [boardSize]);
 
   // Calculate board dimensions - move outside JSX so we can use in handlers
   const screenWidth = Dimensions.get('window').width;
@@ -408,14 +263,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Method: {touchMethod || 'detecting...'}
-      </Text>
-      <Text style={{ color: '#10B981', fontSize: 11, marginBottom: 2 }}>
-        {touchMethod === 'locationXY'
-          ? '✓ Real device mode (locationX/Y)'
-          : touchMethod === 'pageXY'
-          ? '✓ Emulator mode (pageX/Y)'
-          : 'Tap to auto-detect device...'}
+        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Method: pageXY (universal)
       </Text>
       <View
         ref={boardRef}
