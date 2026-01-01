@@ -19,6 +19,14 @@ export default function GameScreen() {
   // Get isMyTurn from matchState
   const isMyTurn = matchState?.currentTurn === mySeat;
 
+  // Debug logging for turn state
+  console.log('[GameScreen] Turn state:', {
+    mySeat,
+    currentTurn: matchState?.currentTurn,
+    isMyTurn,
+    matchStateExists: !!matchState
+  });
+
   // Handle game action (token placement)
   const handleGameAction = (position: number, superpowerType?: number) => {
     claimSquare(position, superpowerType);
