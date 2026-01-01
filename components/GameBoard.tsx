@@ -85,20 +85,31 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [isPlacementStage, isMyTurn, isFinished, board, boardSize, onGameAction]);
 
-  // Touch event handler
-  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    if (!isPlacementStage || !isMyTurn) return;
-
-    // Measure board position
+  // Measure board layout on mount and when it changes
+  const handleLayout = useCallback(() => {
     boardRef.current?.measure((x, y, width, height, pageX, pageY) => {
       boardLayout.current = { x: pageX, y: pageY, width, height };
     });
+  }, []);
+
+  // Touch event handler
+  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
+    console.log('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
+    if (!isPlacementStage || !isMyTurn) return;
+
+    // Ensure board is measured (backup in case onLayout didn't fire)
+    if (!boardLayout.current) {
+      boardRef.current?.measure((x, y, width, height, pageX, pageY) => {
+        boardLayout.current = { x: pageX, y: pageY, width, height };
+      });
+    }
 
     setIsDragging(true);
     lastPlacedCell.current = null;
 
     const touch = e.nativeEvent;
     const cell = getCellFromPosition(touch.pageX, touch.pageY);
+    console.log('[GameBoard] Cell detected on touch start:', cell, 'boardLayout:', boardLayout.current);
     if (cell) {
       handlePlacement(cell.row, cell.col);
     }
@@ -181,6 +192,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
             height: boardDimension,
           }
         ]}
+        onLayout={handleLayout}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
