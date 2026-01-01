@@ -137,9 +137,19 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const handleLayout = useCallback(() => {
     boardRef.current?.measureInWindow((x, y, width, height) => {
       boardLayout.current = { x, y, width, height };
-      console.log('[GameBoard] Board measured in window:', { x, y, width, height });
+      const BOARD_BORDER = 2;
+      const usableWidth = width - (BOARD_BORDER * 2);
+      const calculatedCellSize = usableWidth / boardSize;
+      console.log('[GameBoard] Board measured:', {
+        x, y, width, height,
+        boardSize,
+        borderWidth: BOARD_BORDER,
+        usableWidth,
+        calculatedCellSize: calculatedCellSize.toFixed(2),
+        percentageBasedCellSize: (width / boardSize).toFixed(2)
+      });
     });
-  }, []);
+  }, [boardSize]);
 
   // Touch event handler
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
@@ -150,6 +160,16 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     lastPlacedCell.current = null;
 
     const touch = e.nativeEvent;
+
+    console.log('[GameBoard] Raw touch event:', {
+      locationX: touch.locationX,
+      locationY: touch.locationY,
+      pageX: touch.pageX,
+      pageY: touch.pageY,
+      type: e.nativeEvent.type,
+      identifier: touch.identifier
+    });
+
     // Use locationX/Y which are relative to the touched view (the board)
     // Get board dimensions from the ref
     const boardWidth = boardDimension;
@@ -237,11 +257,8 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
         Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Cell size: {(boardDimension/boardSize).toFixed(1)}px
       </Text>
-      <Text style={{ color: '#FBBF24', fontSize: 12, marginBottom: 4, fontWeight: 'bold' }}>
-        Cell size: {(boardDimension/boardSize).toFixed(1)}px | Tap in CENTER of square
-      </Text>
-      <Text style={{ color: '#10B981', fontSize: 10, marginBottom: 4 }}>
-        Col 0: 0-{(boardDimension/boardSize).toFixed(0)}px | Col 1: {(boardDimension/boardSize).toFixed(0)}-{(2*boardDimension/boardSize).toFixed(0)}px | Col 2: {(2*boardDimension/boardSize).toFixed(0)}-{(3*boardDimension/boardSize).toFixed(0)}px
+      <Text style={{ color: '#FBBF24', fontSize: 11, marginBottom: 2 }}>
+        Last tap will show in logs - check if col matches visual square
       </Text>
       <View
         ref={boardRef}

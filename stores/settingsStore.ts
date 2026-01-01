@@ -12,8 +12,8 @@ export interface GameSettings {
 }
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
-  boardSize: 10, // TESTING: 10x10 for easier tapping (change back to 20 for production)
-  tokensPerPlayer: 10, // Adjusted for smaller board
+  boardSize: 20,
+  tokensPerPlayer: 20,
   birthRules: [3],
   survivalRules: [2, 3],
   enabledSuperpowers: [1, 2, 3, 4, 5, 6, 7],
