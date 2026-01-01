@@ -28,31 +28,20 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const lastPlacedCell = useRef<string | null>(null);
   const boardLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
-  // Get cell coordinates from touch position with expanded hit areas
-  const getCellFromPosition = useCallback((pageX: number, pageY: number): { row: number; col: number } | null => {
-    if (!boardLayout.current) {
-      console.log('[GameBoard] No boardLayout available');
-      return null;
-    }
-
-    const { x, y, width, height } = boardLayout.current;
-    const relativeX = pageX - x;
-    const relativeY = pageY - y;
-
+  // Get cell coordinates from touch position - using locationX/Y which is relative to the touched view
+  const getCellFromPosition = useCallback((locationX: number, locationY: number, boardWidth: number, boardHeight: number): { row: number; col: number } | null => {
     console.log('[GameBoard] Touch calculation:', {
-      pageX, pageY,
-      boardX: x, boardY: y,
-      relativeX, relativeY,
-      boardSize,
-      width, height
+      locationX, locationY,
+      boardWidth, boardHeight,
+      boardSize
     });
 
     // Calculate cell size
-    const cellSize = Math.min(width, height) / boardSize;
+    const cellSize = Math.min(boardWidth, boardHeight) / boardSize;
 
-    // Simplified calculation - just use relative position divided by cell size
-    const col = Math.floor(relativeX / cellSize);
-    const row = Math.floor(relativeY / cellSize);
+    // Direct calculation - locationX/Y are already relative to the board
+    const col = Math.floor(locationX / cellSize);
+    const row = Math.floor(locationY / cellSize);
 
     console.log('[GameBoard] Calculated cell:', { row, col, cellSize });
 
@@ -62,7 +51,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       return { row, col };
     }
 
-    console.log('[GameBoard] Cell out of bounds');
+    console.log('[GameBoard] Cell out of bounds:', { row, col, boardSize });
     return null;
   }, [boardSize]);
 
@@ -102,33 +91,34 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     console.log('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
     if (!isPlacementStage || !isMyTurn) return;
 
-    // Ensure board is measured (backup in case onLayout didn't fire)
-    if (!boardLayout.current) {
-      boardRef.current?.measureInWindow((x, y, width, height) => {
-        boardLayout.current = { x, y, width, height };
-      });
-    }
-
     setIsDragging(true);
     lastPlacedCell.current = null;
 
     const touch = e.nativeEvent;
-    const cell = getCellFromPosition(touch.pageX, touch.pageY);
-    console.log('[GameBoard] Cell detected on touch start:', cell, 'boardLayout:', boardLayout.current);
+    // Use locationX/Y which are relative to the touched view (the board)
+    // Get board dimensions from the ref
+    const boardWidth = boardDimension;
+    const boardHeight = boardDimension;
+
+    const cell = getCellFromPosition(touch.locationX, touch.locationY, boardWidth, boardHeight);
+    console.log('[GameBoard] Cell detected on touch start:', cell);
     if (cell) {
       handlePlacement(cell.row, cell.col);
     }
-  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
+  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardDimension]);
 
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
     if (!isDragging || !isPlacementStage || !isMyTurn) return;
 
     const touch = e.nativeEvent;
-    const cell = getCellFromPosition(touch.pageX, touch.pageY);
+    const boardWidth = boardDimension;
+    const boardHeight = boardDimension;
+
+    const cell = getCellFromPosition(touch.locationX, touch.locationY, boardWidth, boardHeight);
     if (cell) {
       handlePlacement(cell.row, cell.col);
     }
-  }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
+  }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardDimension]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -182,9 +172,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     return cellStyles;
   };
 
-  // Calculate board dimensions
+  // Calculate board dimensions - move outside JSX so we can use in handlers
   const screenWidth = Dimensions.get('window').width;
-  const boardDimension = Math.min(screenWidth * 0.95, 500);
+  const boardDimension = React.useMemo(() => Math.min(screenWidth * 0.95, 500), [screenWidth]);
 
   return (
     <View style={styles.container}>
