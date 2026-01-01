@@ -226,7 +226,11 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
   // Handle game actions from the board
   const handleGameAction = useCallback((action: any) => {
-    if (!matchState || !mySeat) return;
+    console.log('[GameOfStrife] handleGameAction called:', action, 'matchState:', !!matchState, 'mySeat:', mySeat);
+    if (!matchState || !mySeat) {
+      console.log('[GameOfStrife] Action blocked - no matchState or mySeat');
+      return;
+    }
 
     switch (action.type) {
       case 'PLACE_TOKEN':
@@ -244,6 +248,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           superpowerType = enabledSuperpowers[randomIndex];
         }
 
+        console.log('[GameOfStrife] Placing token at position:', action.payload.position, 'superpowerType:', superpowerType);
         // Convert to socket claim square action with superpowerType
         onAction(action.payload.position, superpowerType);
         break;

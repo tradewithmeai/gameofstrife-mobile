@@ -1,16 +1,19 @@
 import { View, StyleSheet } from 'react-native';
-import { Text, Card } from 'react-native-paper';
+import { Text, Card, Button } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import { useSocketStore } from '../../stores/socketStore';
 import { GameOfStrife } from '../../components/GameOfStrife';
 
 export default function GameScreen() {
+  const router = useRouter();
   const {
     inMatch,
     matchState,
     mySeat,
     isConnected,
     claimSquare,
-    requestRematch
+    requestRematch,
+    leaveRoom
   } = useSocketStore();
 
   // Get isMyTurn from matchState
@@ -26,16 +29,35 @@ export default function GameScreen() {
     requestRematch();
   };
 
+  // Handle leave game
+  const handleLeaveGame = () => {
+    leaveRoom();
+    router.push('/');
+  };
+
   // Show game if in match, otherwise show waiting message
   if (inMatch && matchState) {
     return (
-      <GameOfStrife
-        matchState={matchState}
-        mySeat={mySeat}
-        isMyTurn={isMyTurn}
-        onAction={handleGameAction}
-        onRematch={handleRematch}
-      />
+      <View style={styles.gameContainer}>
+        <View style={styles.leaveButtonContainer}>
+          <Button
+            mode="text"
+            onPress={handleLeaveGame}
+            icon="arrow-left"
+            textColor="#EF4444"
+            compact
+          >
+            Leave Game
+          </Button>
+        </View>
+        <GameOfStrife
+          matchState={matchState}
+          mySeat={mySeat}
+          isMyTurn={isMyTurn}
+          onAction={handleGameAction}
+          onRematch={handleRematch}
+        />
+      </View>
     );
   }
 
@@ -62,6 +84,15 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
+  gameContainer: {
+    flex: 1,
+    backgroundColor: '#111827',
+  },
+  leaveButtonContainer: {
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    backgroundColor: '#111827',
+  },
   container: {
     flex: 1,
     backgroundColor: '#111827',
