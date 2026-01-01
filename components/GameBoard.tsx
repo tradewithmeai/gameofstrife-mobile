@@ -1,6 +1,6 @@
 // Game of Strife GameBoard for React Native
 import React, { useCallback, useState, useRef } from 'react';
-import { View, StyleSheet, Dimensions, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, Dimensions, GestureResponderEvent, Text } from 'react-native';
 import { Cell, MEMORY_FLAGS, GameStage } from '../utils/gameTypes';
 
 interface GameOfStrifeBoardProps {
@@ -193,6 +193,10 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Debug info */}
+      <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
+        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Cell size: {(boardDimension/boardSize).toFixed(1)}px
+      </Text>
       <View
         ref={boardRef}
         style={[
