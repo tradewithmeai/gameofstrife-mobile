@@ -170,30 +170,32 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       identifier: touch.identifier
     });
 
-    // Use locationX/Y which are relative to the touched view (the board)
-    // Get board dimensions from the ref
-    const boardWidth = boardDimension;
-    const boardHeight = boardDimension;
+    // CRITICAL FIX: Measure the board RIGHT NOW to get actual rendered dimensions
+    // Don't use cached boardDimension which might not match actual render size
+    boardRef.current?.measure((x, y, width, height) => {
+      console.log('[GameBoard] Just-in-time measure for touch:', { width, height, cachedDimension: boardDimension });
 
-    const cell = getCellFromPosition(touch.locationX, touch.locationY, boardWidth, boardHeight);
-    console.log('[GameBoard] Cell detected on touch start:', cell);
-    if (cell) {
-      handlePlacement(cell.row, cell.col);
-    }
-  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardDimension]);
+      const cell = getCellFromPosition(touch.locationX, touch.locationY, width, height);
+      console.log('[GameBoard] Cell detected on touch start:', cell);
+      if (cell) {
+        handlePlacement(cell.row, cell.col);
+      }
+    });
+  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardDimension, boardSize]);
 
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
     if (!isDragging || !isPlacementStage || !isMyTurn) return;
 
     const touch = e.nativeEvent;
-    const boardWidth = boardDimension;
-    const boardHeight = boardDimension;
 
-    const cell = getCellFromPosition(touch.locationX, touch.locationY, boardWidth, boardHeight);
-    if (cell) {
-      handlePlacement(cell.row, cell.col);
-    }
-  }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement, boardDimension]);
+    // Use actual measured dimensions
+    boardRef.current?.measure((x, y, width, height) => {
+      const cell = getCellFromPosition(touch.locationX, touch.locationY, width, height);
+      if (cell) {
+        handlePlacement(cell.row, cell.col);
+      }
+    });
+  }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
