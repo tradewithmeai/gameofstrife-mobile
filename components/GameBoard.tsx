@@ -2,6 +2,7 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, GestureResponderEvent, Text } from 'react-native';
 import { Cell, MEMORY_FLAGS, GameStage } from '../utils/gameTypes';
+import { devLog } from '../utils/devMode';
 
 interface GameOfStrifeBoardProps {
   board: Cell[][];
@@ -66,7 +67,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   ): 'locationXY' | 'pageXY' => {
     const { locationMethod, pageMethod } = coords;
 
-    console.log('[GameBoard] Touch method detection:', {
+    devLog('[GameBoard] Touch method detection:', {
       locationXY: locationMethod,
       pageXY: pageMethod,
       boardDimensions: { width: boardWidth, height: boardHeight }
@@ -87,7 +88,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       pageMethod.y >= 0 &&
       pageMethod.y <= boardHeight;
 
-    console.log('[GameBoard] Validation:', { locationXYValid, pageXYValid });
+    devLog('[GameBoard] Validation:', { locationXYValid, pageXYValid });
 
     // Prefer locationXY if both valid (more direct, less calculation)
     if (locationXYValid) {
@@ -125,7 +126,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     const adjustedX = locationX - BOARD_BORDER_WIDTH;
     const adjustedY = locationY - BOARD_BORDER_WIDTH;
 
-    console.log('[GameBoard] Touch calculation:', {
+    devLog('[GameBoard] Touch calculation:', {
       locationX, locationY,
       adjustedX, adjustedY,
       boardWidth, boardHeight,
@@ -142,7 +143,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     const col = Math.floor(adjustedX / cellSize);
     const row = Math.floor(adjustedY / cellSize);
 
-    console.log('[GameBoard] Calculated cell:', {
+    devLog('[GameBoard] Calculated cell:', {
       row,
       col,
       cellSize: cellSize.toFixed(2),
@@ -247,7 +248,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
     const touch = e.nativeEvent;
 
-    console.log('[GameBoard] Raw touch:', {
+    devLog('[GameBoard] Raw touch:', {
       locationX: touch.locationX,
       locationY: touch.locationY,
       pageX: touch.pageX,
@@ -256,7 +257,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      console.log('[GameBoard] Board position:', { boardX, boardY, width, height });
+      devLog('[GameBoard] Board position:', { boardX, boardY, width, height });
 
       // First touch: detect which method to use
       if (!detectionAttempted.current) {

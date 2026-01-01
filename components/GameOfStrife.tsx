@@ -16,6 +16,7 @@ import {
   DEFAULT_CONWAY_RULES
 } from '../utils/gameTypes';
 import { useSocketStore } from '../stores/socketStore';
+import { devLog, summarize } from '../utils/devMode';
 
 interface GameOfStrifeProps {
   matchState: any;
@@ -74,7 +75,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
     // Extract Game of Strife metadata if available
     const metadata = (matchState as any).metadata || {};
-    console.log('[GameOfStrife] Metadata from matchState:', JSON.stringify(metadata));
+    devLog('[GameOfStrife] Metadata summary:', summarize(metadata));
 
     // Determine board size
     const boardSize = metadata.boardSize || Math.sqrt(matchState.board.length);

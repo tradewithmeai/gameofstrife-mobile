@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:gameofstrife-mobile-production.up.railway.app)",
+      "Bash(npm start)",
+      "Bash(npx expo install:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}
