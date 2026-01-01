@@ -311,6 +311,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           isMyTurn={isMyTurn || false}
           isFinished={isFinished}
           onGameAction={handleGameAction}
+          mySeat={mySeat}
         />
 
         {/* Additional Game Info */}

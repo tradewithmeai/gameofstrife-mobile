@@ -12,6 +12,7 @@ interface GameOfStrifeBoardProps {
   isFinished: boolean;
   onGameAction: (action: any) => void;
   selectedCell?: { row: number; col: number } | null;
+  mySeat?: 'P1' | 'P2' | null;
 }
 
 export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
@@ -22,6 +23,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   isFinished,
   onGameAction,
   selectedCell,
+  mySeat,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const boardRef = useRef<View>(null);
