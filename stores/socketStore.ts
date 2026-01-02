@@ -355,13 +355,42 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       }
     }
 
+    // Manually update fullBoard in metadata if it exists
+    let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
+
+    if (updatedMetadata?.fullBoard && data.squareId !== undefined) {
+      // Clone the fullBoard to avoid mutation
+      const fullBoard = updatedMetadata.fullBoard.map((row: any[]) => [...row]);
+      const boardSize = updatedMetadata.boardSize || 20;
+
+      // Convert squareId to row/col
+      const row = Math.floor(data.squareId / boardSize);
+      const col = data.squareId % boardSize;
+
+      // Determine player index from the flat board array
+      const playerString = data.board[data.squareId]; // "P1" or "P2"
+      const playerIndex = playerString === 'P1' ? 0 : playerString === 'P2' ? 1 : null;
+
+      // Update the cell in fullBoard
+      if (fullBoard[row] && fullBoard[row][col]) {
+        fullBoard[row][col] = {
+          ...fullBoard[row][col],
+          player: playerIndex
+        };
+      }
+
+      updatedMetadata = {
+        ...updatedMetadata,
+        fullBoard
+      };
+    }
+
     const newState = {
       ...state.matchState,
       board: data.board, // Use authoritative board from server
       version: data.version,
       currentTurn: (data.nextTurn as 'P1' | 'P2') || state.matchState.currentTurn,
-      // Update metadata if provided (includes fullBoard for Game of Strife)
-      metadata: data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata
+      metadata: updatedMetadata
     }
 
     console.log(`[SquareClaimed] APPLIED:`, {
