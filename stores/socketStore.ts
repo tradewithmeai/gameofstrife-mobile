@@ -697,7 +697,19 @@ const onRoomJoined = (room: Room) => {
 
 const onRoomLeft = () => {
   console.log('Left room')
-  storeInstance.setState({ currentRoom: null, inQueue: false })
+  storeInstance.setState({
+    currentRoom: null,
+    inQueue: false,
+    inMatch: false,
+    matchState: null,
+    currentMatch: null,
+    mySeat: null,
+    gameInputLocked: false,
+    isFinished: false,
+    pendingClaims: new Map(),
+    rematchPending: false,
+    rematchRequesterSeat: null,
+  })
 }
 
 const onPublicRooms = (rooms: Room[]) => {

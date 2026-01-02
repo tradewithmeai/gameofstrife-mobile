@@ -198,7 +198,7 @@ export default function LobbyScreen() {
           mode="contained"
           onPress={handleCreateRoom}
           style={styles.button}
-          disabled={!isConnected || inMatch}
+          disabled={!isConnected || inMatch || !!currentRoom}
           icon="plus-circle"
         >
           Create Room
