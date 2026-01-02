@@ -12,7 +12,7 @@ export interface GameSettings {
 }
 
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
-  boardSize: 20,
+  boardSize: 10,
   tokensPerPlayer: 20,
   birthRules: [3],
   survivalRules: [2, 3],

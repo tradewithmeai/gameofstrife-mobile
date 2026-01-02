@@ -89,7 +89,7 @@ export interface GameOfStrifeSettings {
 
 // Default game settings
 export const DEFAULT_GAME_SETTINGS: GameOfStrifeSettings = {
-  boardSize: 20,
+  boardSize: 10,
   tokensPerPlayer: 20,
   conwayRules: {
     birthRules: [3],        // Standard Conway's rule: birth on 3 neighbors

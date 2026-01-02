@@ -256,7 +256,9 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
           boardSize: (result.matchState.engineState as any).boardSize,
           stage: (result.matchState.engineState as any).currentPhase,
           conwayRules: (result.matchState.engineState as any).conwayRules,
-          settings: result.matchState.gameSettings
+          settings: result.matchState.gameSettings,
+          player0Superpowers: (result.matchState.engineState as any).player0Superpowers,
+          player1Superpowers: (result.matchState.engineState as any).player1Superpowers
         }
       }
 

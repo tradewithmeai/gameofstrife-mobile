@@ -83,7 +83,29 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     // Use fullBoard from metadata if available (preserves superpowerType and memory)
     // Otherwise fall back to converting from flat board
     const board = metadata.fullBoard || getBoardFromFlat(matchState.board, boardSize);
-    console.log('[GameOfStrife] Using fullBoard from metadata:', !!metadata.fullBoard);
+    console.log('🎮 [GameOfStrife] Board source:', !!metadata.fullBoard ? 'USING FULLBOARD (has superpowers)' : 'USING FLAT BOARD (NO superpowers!)');
+
+    // Check if any cells have superpowers
+    if (board && board.length > 0) {
+      let superpowerCount = 0;
+      for (let row of board) {
+        for (let cell of row) {
+          if (cell.superpowerType > 0) superpowerCount++;
+        }
+      }
+      console.log('🎮 [GameOfStrife] Cells with superpowers on board:', superpowerCount);
+
+      // Sample a few cells to debug
+      if (superpowerCount > 0) {
+        console.log('🎮 [GameOfStrife] Sample superpower cells:',
+          board.flat().filter(c => c.superpowerType > 0).slice(0, 3).map(c => ({
+            player: c.player,
+            superpowerType: c.superpowerType,
+            alive: c.alive
+          }))
+        );
+      }
+    }
 
     // Extract Conway rules from metadata (set by backend from game settings)
     const conwayRules = metadata.conwayRules || DEFAULT_CONWAY_RULES;
