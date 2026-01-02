@@ -384,11 +384,11 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       });
     }
 
-    // Preserve placementCounts from frontend state (don't let server overwrite them)
-    const currentPlacementCounts = state.matchState.metadata?.placementCounts;
-    let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
-    if (currentPlacementCounts && updatedMetadata) {
-      updatedMetadata.placementCounts = currentPlacementCounts;
+    // Merge metadata but EXCLUDE placementCounts from server (frontend tracks these)
+    let updatedMetadata = state.matchState.metadata || {};
+    if (data.metadata) {
+      const { placementCounts: _, ...serverMetadataWithoutCounts } = data.metadata;
+      updatedMetadata = { ...updatedMetadata, ...serverMetadataWithoutCounts };
     }
 
     // Verify manifests are preserved

@@ -244,34 +244,34 @@ const styles = StyleSheet.create({
   cellVeteran: {
     opacity: 0.9,
   },
-  // Superpower visual effects (use opacity/brightness for distinction)
+  // Superpower visual effects (BOLD borders for visibility)
   superpowerTank: {
-    opacity: 1,
-    borderWidth: 1,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
   },
   superpowerSpreader: {
-    opacity: 0.85,
+    borderWidth: 3,
+    borderColor: '#06B6D4', // Cyan
   },
   superpowerSurvivor: {
-    opacity: 0.95,
-    borderWidth: 1,
-    borderColor: '#FBBF24',
+    borderWidth: 3,
+    borderColor: '#FBBF24', // Yellow
   },
   superpowerGhost: {
-    opacity: 0.5,
+    opacity: 0.6,
+    borderWidth: 3,
+    borderColor: '#C084FC', // Purple
   },
   superpowerReplicator: {
-    opacity: 0.8,
+    borderWidth: 3,
+    borderColor: '#F97316', // Orange
   },
   superpowerDestroyer: {
-    opacity: 1,
-    borderWidth: 1,
-    borderColor: '#EF4444',
+    borderWidth: 3,
+    borderColor: '#EF4444', // Red
   },
   superpowerHybrid: {
-    opacity: 0.9,
-    borderWidth: 1,
-    borderColor: '#A855F7',
+    borderWidth: 3,
+    borderColor: '#A855F7', // Purple
   },
 });
