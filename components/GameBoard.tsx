@@ -26,61 +26,11 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   selectedCell,
   mySeat,
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
   const boardRef = useRef<View>(null);
   const lastPlacedCell = useRef<string | null>(null);
 
   // Log component render to verify code is loaded
-  devLog('[GameBoard] Component rendered - using Pressable with locationXY');
-
-  // Get cell coordinates from touch position - using locationX/Y which is relative to the touched view
-  const getCellFromPosition = useCallback((locationX: number, locationY: number, boardWidth: number, boardHeight: number): { row: number; col: number } | null => {
-    // Account for board border (2px on each side as defined in styles.board)
-    const BOARD_BORDER_WIDTH = 2;
-
-    // Adjust for border offset
-    const adjustedX = locationX - BOARD_BORDER_WIDTH;
-    const adjustedY = locationY - BOARD_BORDER_WIDTH;
-
-    // Calculate usable board area (excluding borders)
-    const usableWidth = boardWidth - (BOARD_BORDER_WIDTH * 2);
-    const usableHeight = boardHeight - (BOARD_BORDER_WIDTH * 2);
-
-    // Clamp coordinates to valid range (allow border touches to map to nearest cell)
-    const clampedX = Math.max(0, Math.min(adjustedX, usableWidth - 0.1));
-    const clampedY = Math.max(0, Math.min(adjustedY, usableHeight - 0.1));
-
-    devLog('[GameBoard] Touch calculation:', {
-      locationX, locationY,
-      adjustedX, adjustedY,
-      clampedX, clampedY,
-      boardWidth, boardHeight,
-      boardSize,
-      borderOffset: BOARD_BORDER_WIDTH
-    });
-
-    const cellSize = Math.min(usableWidth, usableHeight) / boardSize;
-
-    // Calculate cell position using clamped coordinates
-    const col = Math.floor(clampedX / cellSize);
-    const row = Math.floor(clampedY / cellSize);
-
-    devLog('[GameBoard] Calculated cell:', {
-      row,
-      col,
-      cellSize: cellSize.toFixed(2),
-      colBoundary: `${(col * cellSize).toFixed(1)}-${((col + 1) * cellSize).toFixed(1)}px`
-    });
-
-    // Check bounds
-    if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
-      devLog('[GameBoard] Cell valid!');
-      return { row, col };
-    }
-
-    devLog('[GameBoard] Cell out of bounds:', { row, col, boardSize });
-    return null;
-  }, [boardSize]);
+  devLog('[GameBoard] Component rendered - per-cell Pressable approach');
 
   // Handle token placement during drag
   const handlePlacement = useCallback((row: number, col: number) => {
@@ -142,102 +92,12 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [isPlacementStage, isMyTurn, isFinished, board, boardSize, onGameAction, mySeat]);
 
-  // Measure board layout on mount and when it changes (for debugging only)
-  const handleLayout = useCallback(() => {
-    boardRef.current?.measureInWindow((x, y, width, height) => {
-      const BOARD_BORDER = 2;
-      const usableWidth = width - (BOARD_BORDER * 2);
-      const calculatedCellSize = usableWidth / boardSize;
-      devLog('[GameBoard] Board measured:', {
-        x, y, width, height,
-        boardSize,
-        borderWidth: BOARD_BORDER,
-        usableWidth,
-        calculatedCellSize: calculatedCellSize.toFixed(2),
-        percentageBasedCellSize: (width / boardSize).toFixed(2)
-      });
-    });
-  }, [boardSize]);
-
-  // Handle press-in with coordinate method detection
-  const handlePressIn = useCallback((e: GestureResponderEvent) => {
-    console.log('[GameBoard] Press in:', { isPlacementStage, isMyTurn, isFinished });
-    if (!isPlacementStage || !isMyTurn) return;
-
-    setIsDragging(true);
-    lastPlacedCell.current = null;
-
-    const touch = e.nativeEvent;
-
-    boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      // Try both coordinate methods
-      const locationX = touch.locationX;
-      const locationY = touch.locationY;
-      const pageX = touch.pageX - boardX;
-      const pageY = touch.pageY - boardY;
-
-      console.log('[GameBoard] Coordinates:', {
-        locationXY: { x: locationX, y: locationY },
-        pageXY: { x: pageX, y: pageY },
-        boardPos: { x: boardX, y: boardY }
-      });
-
-      // Detect if locationXY is broken (Chromebook issue)
-      // If locationXY is very close to origin (<50px) but pageXY is far (>100px),
-      // locationXY is broken - use pageXY instead
-      const locationDist = Math.sqrt(locationX ** 2 + locationY ** 2);
-      const pageDist = Math.sqrt(pageX ** 2 + pageY ** 2);
-      const useBrokenFallback = locationDist < 50 && pageDist > 100;
-
-      const x = useBrokenFallback ? pageX : locationX;
-      const y = useBrokenFallback ? pageY : locationY;
-
-      console.log('[GameBoard] Using coords:', {
-        method: useBrokenFallback ? 'pageXY (locationXY broken)' : 'locationXY',
-        x, y,
-        locationDist: locationDist.toFixed(2),
-        pageDist: pageDist.toFixed(2)
-      });
-
-      const cell = getCellFromPosition(x, y, width, height);
-      console.log('[GameBoard] Calculated cell:', cell);
-      if (cell) {
-        handlePlacement(cell.row, cell.col);
-      }
-    });
-  }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
-
-  // Handle responder move for drag placement
-  const handleResponderMove = useCallback((e: GestureResponderEvent) => {
-    if (!isDragging || !isPlacementStage || !isMyTurn) return;
-
-    const touch = e.nativeEvent;
-
-    boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      const locationX = touch.locationX;
-      const locationY = touch.locationY;
-      const pageX = touch.pageX - boardX;
-      const pageY = touch.pageY - boardY;
-
-      // Detect if locationXY is broken
-      const locationDist = Math.sqrt(locationX ** 2 + locationY ** 2);
-      const pageDist = Math.sqrt(pageX ** 2 + pageY ** 2);
-      const useBrokenFallback = locationDist < 50 && pageDist > 100;
-
-      const x = useBrokenFallback ? pageX : locationX;
-      const y = useBrokenFallback ? pageY : locationY;
-
-      const cell = getCellFromPosition(x, y, width, height);
-      if (cell) {
-        handlePlacement(cell.row, cell.col);
-      }
-    });
-  }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
-
-  const handlePressOut = useCallback(() => {
-    setIsDragging(false);
-    lastPlacedCell.current = null;
-  }, []);
+  // Handle cell press - called directly by each cell's Pressable
+  const handleCellPress = useCallback((row: number, col: number) => {
+    console.log('[GameBoard] Cell pressed:', { row, col });
+    lastPlacedCell.current = null; // Reset for new placement
+    handlePlacement(row, col);
+  }, [handlePlacement]);
 
   const getSuperpowerStyle = (superpowerType: number) => {
     switch (superpowerType) {
@@ -295,9 +155,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Auto-detect: locationXY/pageXY
+        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Per-cell Pressable
       </Text>
-      <Pressable
+      <View
         ref={boardRef}
         style={[
           styles.board,
@@ -306,15 +166,13 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
             height: boardDimension,
           }
         ]}
-        onLayout={handleLayout}
-        onPressIn={handlePressIn}
-        onResponderMove={handleResponderMove}
-        onPressOut={handlePressOut}
       >
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
-            <View
+            <Pressable
               key={`${rowIndex}-${colIndex}`}
+              onPress={() => handleCellPress(rowIndex, colIndex)}
+              disabled={!isPlacementStage || !isMyTurn}
               style={[
                 ...getCellStyle(cell),
                 selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
@@ -323,7 +181,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
             />
           ))
         )}
-      </Pressable>
+      </View>
     </View>
   );
 };
