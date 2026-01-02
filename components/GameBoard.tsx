@@ -1,6 +1,7 @@
 // Game of Strife GameBoard for React Native
 import React, { useCallback, useState, useRef } from 'react';
-import { View, Pressable, StyleSheet, Dimensions, GestureResponderEvent, Text } from 'react-native';
+import { View, Pressable, StyleSheet, useWindowDimensions, GestureResponderEvent, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cell, MEMORY_FLAGS, GameStage } from '../utils/gameTypes';
 import { devLog } from '../utils/devMode';
 
@@ -148,12 +149,34 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   };
 
 
-  // Calculate board dimensions - move outside JSX so we can use in handlers
-  const screenWidth = Dimensions.get('window').width;
+  // Calculate board dimensions - responsive for phones, tablets, and Chromebooks
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  // Detect device type based on screen dimensions
+  const isTablet = React.useMemo(() => {
+    const smallerDimension = Math.min(width, height);
+    return smallerDimension >= 600; // 600dp is standard tablet breakpoint
+  }, [width, height]);
+
   const boardDimension = React.useMemo(() => {
-    const maxWidth = Math.min(screenWidth * 0.9, 450); // Reduced from 0.95 and 500
-    return maxWidth;
-  }, [screenWidth]);
+    // Use the smaller dimension to handle landscape/portrait
+    const smallerDimension = Math.min(width, height);
+
+    // Account for safe area insets
+    const availableWidth = width - insets.left - insets.right - 32; // 32px padding
+    const availableHeight = height - insets.top - insets.bottom - 100; // 100px for HUD/cards
+    const availableSpace = Math.min(availableWidth, availableHeight);
+
+    // Different scaling for tablets/Chromebooks vs phones
+    if (isTablet) {
+      // Tablets/Chromebooks: use more of the screen, higher max size
+      return Math.min(availableSpace * 0.85, 700);
+    } else {
+      // Phones: tighter fit, lower max size
+      return Math.min(availableSpace * 0.9, 450);
+    }
+  }, [width, height, insets, isTablet]);
 
   // Account for board border when calculating cell size
   const boardBorderWidth = 2;
@@ -165,7 +188,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Cell: {cellSize.toFixed(1)}px
+        {isTablet ? '📱 Tablet' : '📱 Phone'} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {boardDimension.toFixed(0)}px | Cell: {cellSize.toFixed(1)}px
       </Text>
       <View
         ref={boardRef}
