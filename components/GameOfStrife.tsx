@@ -93,6 +93,20 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     const settings = metadata.settings || null;
     console.log('[GameOfStrife] Using game settings:', settings);
 
+    // DEBUG: Log superpower manifests
+    if (metadata.player0Superpowers || metadata.player1Superpowers) {
+      const p0Count = metadata.player0Superpowers?.filter((s: number) => s > 0).length || 0;
+      const p1Count = metadata.player1Superpowers?.filter((s: number) => s > 0).length || 0;
+      console.log('🎮 SUPERPOWER MANIFESTS LOADED:', {
+        P1_Superpowers: p0Count,
+        P2_Superpowers: p1Count,
+        P1_Manifest: metadata.player0Superpowers,
+        P2_Manifest: metadata.player1Superpowers
+      });
+    } else {
+      console.warn('⚠️ NO SUPERPOWER MANIFESTS IN METADATA!');
+    }
+
     // Determine game stage - prefer metadata.stage if available
     let stage: GameStage = 'placement';
     if (metadata.stage) {
@@ -251,12 +265,12 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           superpowerType = playerManifest[currentPlacementIndex];
         }
 
-        console.log('[GameOfStrife] Placing token with manifest superpower:', {
+        console.log(`🎯 PLACING TOKEN #${currentPlacementIndex + 1} with SUPERPOWER TYPE ${superpowerType}`, {
           position: action.payload.position,
-          mySeat,
-          placementIndex: currentPlacementIndex,
-          superpowerType,
-          manifestLength: playerManifest?.length || 0
+          seat: mySeat,
+          manifestHas: playerManifest ? 'YES' : 'NO',
+          manifestLength: playerManifest?.length || 0,
+          fullManifest: playerManifest
         });
 
         // Convert to socket claim square action with superpowerType
