@@ -355,35 +355,14 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       }
     }
 
-    // Manually update fullBoard in metadata if it exists
+    // Server already sends the updated fullBoard in metadata - just use it directly!
+    console.log('[SquareClaimed] Using server fullBoard:', {
+      hasDataMetadata: !!data.metadata,
+      dataHasFullBoard: !!(data.metadata?.fullBoard),
+      stateHasFullBoard: !!(state.matchState.metadata?.fullBoard)
+    });
+
     let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
-
-    if (updatedMetadata?.fullBoard && data.squareId !== undefined) {
-      // Clone the fullBoard to avoid mutation
-      const fullBoard = updatedMetadata.fullBoard.map((row: any[]) => [...row]);
-      const boardSize = updatedMetadata.boardSize || 20;
-
-      // Convert squareId to row/col
-      const row = Math.floor(data.squareId / boardSize);
-      const col = data.squareId % boardSize;
-
-      // Determine player index from the flat board array
-      const playerString = data.board[data.squareId]; // "P1" or "P2"
-      const playerIndex = playerString === 'P1' ? 0 : playerString === 'P2' ? 1 : null;
-
-      // Update the cell in fullBoard
-      if (fullBoard[row] && fullBoard[row][col]) {
-        fullBoard[row][col] = {
-          ...fullBoard[row][col],
-          player: playerIndex
-        };
-      }
-
-      updatedMetadata = {
-        ...updatedMetadata,
-        fullBoard
-      };
-    }
 
     const newState = {
       ...state.matchState,
@@ -392,6 +371,12 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       currentTurn: (data.nextTurn as 'P1' | 'P2') || state.matchState.currentTurn,
       metadata: updatedMetadata
     }
+
+    console.log('[SquareClaimed] newState created:', {
+      hasMetadata: !!newState.metadata,
+      hasFullBoard: !!newState.metadata?.fullBoard,
+      fullBoardSize: newState.metadata?.fullBoard?.length
+    });
 
     console.log(`[SquareClaimed] APPLIED:`, {
       squareId: data.squareId,
