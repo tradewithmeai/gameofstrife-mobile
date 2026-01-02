@@ -338,9 +338,13 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
         const row = Math.floor(squareId / boardSize)
         const col = squareId % boardSize
         const placedCell = (result.matchState.engineState as any).board[row]?.[col]
-        logger.debug('🔧 [Server] Sending squareClaimed with cell:', {
+        logger.debug('🔧 [Server] Broadcasting squareClaimed', {
+          matchId,
           squareId,
-          row, col,
+          boardSize,
+          row,
+          col,
+          flatBoardLength: result.matchState.board.length,
           cell: placedCell ? {
             player: placedCell.player,
             alive: placedCell.alive,

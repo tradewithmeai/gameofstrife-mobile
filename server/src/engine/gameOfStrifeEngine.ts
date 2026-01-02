@@ -191,7 +191,14 @@ export class GameOfStrifeEngine implements GameEngine {
       newBoard = gosState.board.map(row => row.map(cell => ({ ...cell })))
     } else {
       // This is a basic EngineState with flattened board, reconstruct 2D board
-      boardSize = this.settings.boardSize
+      // CRITICAL: Use boardSize from state, not from engine settings
+      boardSize = (state as any).boardSize || this.settings.boardSize
+      if (!(state as any).boardSize) {
+        logger.warn('[GameOfStrifeEngine] State missing boardSize, using engine default', {
+          engineBoardSize: this.settings.boardSize,
+          stateBoardLength: state.board.length
+        })
+      }
       newBoard = createBoard(boardSize)
 
       // Populate from flattened board

@@ -173,6 +173,15 @@ export class MatchService {
     const engineState = matchEngine.initState()
     const extendedEngineState = engineState as any
 
+    // CRITICAL: Ensure boardSize is set even for non-GoS games
+    if (!extendedEngineState.boardSize) {
+      extendedEngineState.boardSize = gameSettings?.boardSize || 9
+      logger.debug('[MatchService] Set boardSize on engineState', {
+        matchId,
+        boardSize: extendedEngineState.boardSize
+      })
+    }
+
     // For GameOfStrife, flatten the 2D board for MatchState compatibility
     let flatBoard: (string | null)[]
     if (this.gameType === 'gameofstrife' && Array.isArray(extendedEngineState.board?.[0])) {
@@ -247,16 +256,37 @@ export class MatchService {
 
     // Log with row/col conversion for debugging
     const match = this.matches.get(matchId)
-    const boardSize = (match?.engineState as any)?.boardSize || Math.sqrt(match?.board.length || 9)
-    const row = Math.floor(squareId / boardSize)
-    const col = squareId % boardSize
-    const seat = match?.playerSeats.get(playerId)
-
-    logger.debug(`Claim attempt`, { matchId, playerId, seat, squareId, row, col, selectionId })
 
     if (!match) {
       return { success: false, reason: 'match_finished' }
     }
+
+    // Validate boardSize consistency
+    let boardSize = (match.engineState as any)?.boardSize || Math.sqrt(match.board.length || 9)
+    const expectedLength = boardSize * boardSize
+
+    if (match.board.length !== expectedLength) {
+      logger.error('[MatchService] Board size mismatch detected!', {
+        matchId,
+        boardSize,
+        flatBoardLength: match.board.length,
+        expectedLength
+      })
+      // Force correct boardSize from flat board length
+      boardSize = Math.sqrt(match.board.length)
+    }
+
+    // Add bounds check for squareId
+    if (squareId < 0 || squareId >= boardSize * boardSize) {
+      logger.error('[MatchService] Invalid squareId', { matchId, squareId, boardSize })
+      return { success: false, reason: 'invalid_square' }
+    }
+
+    const row = Math.floor(squareId / boardSize)
+    const col = squareId % boardSize
+    const seat = match.playerSeats.get(playerId)
+
+    logger.debug(`Claim attempt`, { matchId, playerId, seat, squareId, row, col, boardSize, selectionId })
 
     const mutex = this.matchMutexes.get(matchId)
     if (!mutex) {
