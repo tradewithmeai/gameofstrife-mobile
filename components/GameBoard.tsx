@@ -182,7 +182,8 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const boardBorderWidth = 2;
   const totalBorderWidth = boardBorderWidth * 2; // left + right borders
   const availableSpace = boardDimension - totalBorderWidth;
-  const cellSize = availableSpace / boardSize;
+  // Floor cellSize to prevent rounding errors that cause cell wrapping
+  const cellSize = Math.floor(availableSpace / boardSize);
 
   return (
     <View style={styles.container}>
