@@ -364,10 +364,11 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
     }
 
     // Server already sends the updated fullBoard in metadata - just use it directly!
-    console.log('[SquareClaimed] Using server fullBoard:', {
+    console.log('🔍 [SquareClaimed] Metadata check:', {
       hasDataMetadata: !!data.metadata,
       dataHasFullBoard: !!(data.metadata?.fullBoard),
-      stateHasFullBoard: !!(state.matchState.metadata?.fullBoard)
+      stateHasFullBoard: !!(state.matchState.metadata?.fullBoard),
+      dataHasManifests: !!(data.metadata?.player0Superpowers && data.metadata?.player1Superpowers)
     });
 
     // Log the actual fullBoard cell for this square
@@ -376,7 +377,7 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       const row = Math.floor(data.squareId / boardSize);
       const col = data.squareId % boardSize;
       const cell = data.metadata.fullBoard[row]?.[col];
-      console.log('[SquareClaimed] Server fullBoard cell:', {
+      console.log('🔍 [SquareClaimed] Server sent cell:', {
         squareId: data.squareId,
         row, col,
         cell: cell ? { player: cell.player, alive: cell.alive, superpowerType: cell.superpowerType } : 'undefined'
@@ -384,6 +385,14 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
     }
 
     let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
+
+    // Verify manifests are preserved
+    console.log('🔍 [SquareClaimed] Manifests after merge:', {
+      hasPlayer0: !!updatedMetadata?.player0Superpowers,
+      hasPlayer1: !!updatedMetadata?.player1Superpowers,
+      player0Count: updatedMetadata?.player0Superpowers?.filter((s: number) => s > 0).length || 0,
+      player1Count: updatedMetadata?.player1Superpowers?.filter((s: number) => s > 0).length || 0
+    });
 
     // Track placement counts for superpower manifest lookup
     // Increment count only for placements (when cell becomes non-null)

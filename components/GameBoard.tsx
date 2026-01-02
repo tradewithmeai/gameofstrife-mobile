@@ -147,7 +147,17 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     // Superpower visual effect
     if (cell.alive && cell.superpowerType > 0) {
       const superpowerStyle = getSuperpowerStyle(cell.superpowerType);
-      if (superpowerStyle) cellStyles.push(superpowerStyle);
+      if (superpowerStyle) {
+        cellStyles.push(superpowerStyle);
+        // Log when we apply a superpower style
+        if (Math.random() < 0.1) { // Log 10% of the time to avoid spam
+          console.log('🎨 [GameBoard] Applying superpower style:', {
+            player: cell.player,
+            superpowerType: cell.superpowerType,
+            styleApplied: superpowerStyle
+          });
+        }
+      }
     }
 
     // Memory effects

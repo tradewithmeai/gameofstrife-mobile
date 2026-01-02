@@ -260,6 +260,23 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
           player0Superpowers: (result.matchState.engineState as any).player0Superpowers,
           player1Superpowers: (result.matchState.engineState as any).player1Superpowers
         }
+
+        // DEBUG: Log the cell that was just placed to verify superpowerType
+        const boardSize = (result.matchState.engineState as any).boardSize
+        const row = Math.floor(squareId / boardSize)
+        const col = squareId % boardSize
+        const placedCell = (result.matchState.engineState as any).board[row]?.[col]
+        logger.debug('🔧 [Server] Sending squareClaimed with cell:', {
+          squareId,
+          row, col,
+          cell: placedCell ? {
+            player: placedCell.player,
+            alive: placedCell.alive,
+            superpowerType: placedCell.superpowerType,
+            memory: placedCell.memory
+          } : 'undefined',
+          superpowerTypeReceived: superpowerType
+        })
       }
 
       gameNamespace.to(roomId).emit('squareClaimed', fullBoardData)
