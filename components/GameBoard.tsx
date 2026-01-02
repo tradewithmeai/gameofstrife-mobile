@@ -178,28 +178,32 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     }
   }, [width, height, insets, isTablet]);
 
-  // Account for board border when calculating cell size
+  // Calculate cell size and actual board dimensions
   const boardBorderWidth = 2;
-  const totalBorderWidth = boardBorderWidth * 2; // left + right borders
   const cellBorderWidth = 0.5; // Each cell has 0.5px border on all sides
-  const totalCellBordersPerRow = boardSize * (cellBorderWidth * 2); // Total border width for all cells in a row
-  const availableSpace = boardDimension - totalBorderWidth - totalCellBordersPerRow;
-  // Floor cellSize to prevent rounding errors that cause cell wrapping
-  const cellSize = Math.floor(availableSpace / boardSize);
+
+  // Calculate cell size from max available dimension
+  const maxAvailableSpace = boardDimension - (boardBorderWidth * 2);
+  const cellSize = Math.floor(maxAvailableSpace / boardSize);
+
+  // Calculate actual board size based on cells (ensures perfect fit)
+  const actualCellWidth = cellSize; // Cell content only, borders are in addition
+  const actualBoardInnerWidth = (actualCellWidth * boardSize) + (boardSize * cellBorderWidth * 2);
+  const actualBoardWidth = actualBoardInnerWidth + (boardBorderWidth * 2);
 
   return (
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {boardDimension.toFixed(0)}px | Cell: {cellSize.toFixed(1)}px
+        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Calc: {actualBoardWidth.toFixed(0)}px | Cell: {cellSize}px
       </Text>
       <View
         ref={boardRef}
         style={[
           styles.board,
           {
-            width: boardDimension,
-            height: boardDimension,
+            width: actualBoardWidth,
+            height: actualBoardWidth,
           }
         ]}
       >

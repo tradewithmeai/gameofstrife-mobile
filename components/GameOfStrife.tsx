@@ -81,11 +81,23 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
     // Determine board size
     const boardSize = metadata.boardSize || Math.sqrt(matchState.board.length);
+    console.log('🎮 [GameOfStrife] Board reconstruction - size:', boardSize, 'flat length:', matchState.board.length);
 
     // Use fullBoard from metadata if available (preserves superpowerType and memory)
     // Otherwise fall back to converting from flat board
     const board = metadata.fullBoard || getBoardFromFlat(matchState.board, boardSize);
     console.log('🎮 [GameOfStrife] Board source:', !!metadata.fullBoard ? 'USING FULLBOARD (has superpowers)' : 'USING FLAT BOARD (NO superpowers!)');
+
+    // Debug: Log token positions
+    const tokenPositions: Array<{pos: number, row: number, col: number, player: string}> = [];
+    for (let i = 0; i < matchState.board.length; i++) {
+      if (matchState.board[i] !== null) {
+        const row = Math.floor(i / boardSize);
+        const col = i % boardSize;
+        tokenPositions.push({pos: i, row, col, player: matchState.board[i] as string});
+      }
+    }
+    console.log('🎮 [GameOfStrife] Token positions on board:', tokenPositions);
 
     // Check if any cells have superpowers
     if (board && board.length > 0) {
