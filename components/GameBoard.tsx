@@ -244,34 +244,26 @@ const styles = StyleSheet.create({
   cellVeteran: {
     opacity: 0.9,
   },
-  // Superpower visual effects (BOLD borders for visibility)
+  // Superpower visual effects (BRIGHT backgrounds for MAXIMUM visibility)
   superpowerTank: {
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // Bright white
   },
   superpowerSpreader: {
-    borderWidth: 3,
-    borderColor: '#06B6D4', // Cyan
+    backgroundColor: '#06B6D4', // Bright cyan
   },
   superpowerSurvivor: {
-    borderWidth: 3,
-    borderColor: '#FBBF24', // Yellow
+    backgroundColor: '#FBBF24', // Bright yellow
   },
   superpowerGhost: {
-    opacity: 0.6,
-    borderWidth: 3,
-    borderColor: '#C084FC', // Purple
+    backgroundColor: '#C084FC', // Bright purple
   },
   superpowerReplicator: {
-    borderWidth: 3,
-    borderColor: '#F97316', // Orange
+    backgroundColor: '#F97316', // Bright orange
   },
   superpowerDestroyer: {
-    borderWidth: 3,
-    borderColor: '#EF4444', // Red
+    backgroundColor: '#EF4444', // Bright red
   },
   superpowerHybrid: {
-    borderWidth: 3,
-    borderColor: '#A855F7', // Purple
+    backgroundColor: '#A855F7', // Bright purple
   },
 });

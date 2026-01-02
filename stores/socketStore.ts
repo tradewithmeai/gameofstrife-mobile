@@ -411,19 +411,37 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
     if (updatedMetadata && data.board[data.squareId] !== null) {
       // Determine which player made this move
       const playerIndex = state.matchState.players.indexOf(data.by)
+
+      console.log('🔍 [SquareClaimed] Player index lookup:', {
+        dataBy: data.by,
+        players: state.matchState.players,
+        playerIndex,
+        foundPlayer: playerIndex >= 0
+      });
+
       if (playerIndex >= 0) {
         const playerKey = playerIndex === 0 ? 'player0' : 'player1'
         if (!updatedMetadata.placementCounts) {
           updatedMetadata.placementCounts = { player0: 0, player1: 0 }
         }
+
+        const oldCount = updatedMetadata.placementCounts[playerKey];
         updatedMetadata.placementCounts = {
           ...updatedMetadata.placementCounts,
-          [playerKey]: updatedMetadata.placementCounts[playerKey] + 1
+          [playerKey]: oldCount + 1
         }
-        console.log('[SquareClaimed] Incremented placement count:', {
+
+        console.log('✅ [SquareClaimed] Incremented placement count:', {
           player: playerKey,
-          count: updatedMetadata.placementCounts[playerKey]
+          from: oldCount,
+          to: oldCount + 1,
+          fullCounts: updatedMetadata.placementCounts
         })
+      } else {
+        console.error('❌ [SquareClaimed] Could not find player in match! Increment skipped!', {
+          dataBy: data.by,
+          matchPlayers: state.matchState.players
+        });
       }
     }
 
