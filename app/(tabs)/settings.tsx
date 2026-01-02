@@ -2,7 +2,8 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, TextInput, Chip } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { useSettingsStore, DEFAULT_GAME_SETTINGS } from '../../stores/settingsStore';
-import { getLogs, shareLogs, clearLogs, getLogFileInfo, DEV_MODE } from '../../utils/devMode';
+import { getLogs, clearLogs, getLogFileInfo, DEV_MODE } from '../../utils/devMode';
+import Constants from 'expo-constants';
 
 export default function SettingsScreen() {
   const { settings, setSettings, resetToDefaults, isLoading } = useSettingsStore();
@@ -25,6 +26,46 @@ export default function SettingsScreen() {
   const loadLogFileInfo = async () => {
     const info = await getLogFileInfo();
     setLogFileInfo(info);
+  };
+
+  const handleUploadLogs = async () => {
+    try {
+      const logs = await getLogs();
+
+      if (!logs || logs === 'No logs yet') {
+        Alert.alert('No Logs', 'No log data to upload yet. Play a game first.');
+        return;
+      }
+
+      // Get server URL from app config
+      const wsUrl = Constants.expoConfig?.extra?.wsUrl || 'https://gameofstrife-mobile-production.up.railway.app';
+      const serverUrl = wsUrl.replace(/^wss?:\/\//, 'https://');
+
+      const response = await fetch(`${serverUrl}/logs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ logs }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      Alert.alert(
+        'Logs Uploaded',
+        `Session ID: ${data.sessionId}\n\nGive this ID to Claude to analyze the logs.\n\nExpires: ${new Date(data.expiresAt).toLocaleString()}`,
+        [{ text: 'OK' }]
+      );
+
+      console.log('📤 Logs uploaded:', data);
+    } catch (error) {
+      console.error('Failed to upload logs:', error);
+      Alert.alert('Upload Failed', `Could not upload logs: ${error}`);
+    }
   };
 
   const superpowerTypes = [
@@ -67,23 +108,23 @@ export default function SettingsScreen() {
     setEnabledSuperpowers(DEFAULT_GAME_SETTINGS.enabledSuperpowers);
   };
 
-  const handleViewLogs = async () => {
-    const logs = await getLogs();
+  const handleClearLogs = async () => {
     Alert.alert(
-      'Debug Logs',
-      logs.length > 1000 ? logs.slice(-1000) + '\n\n...(showing last 1000 chars)' : logs,
+      'Clear Logs?',
+      'This will delete all stored log data.',
       [
-        { text: 'Share', onPress: shareLogs },
-        { text: 'Clear', onPress: handleClearLogs, style: 'destructive' },
-        { text: 'Close', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearLogs();
+            await loadLogFileInfo(); // Refresh file info
+            Alert.alert('Success', 'Logs cleared');
+          }
+        }
       ]
     );
-  };
-
-  const handleClearLogs = async () => {
-    await clearLogs();
-    await loadLogFileInfo(); // Refresh file info
-    Alert.alert('Success', 'Logs cleared');
   };
 
   return (
@@ -232,7 +273,8 @@ export default function SettingsScreen() {
                 Debug Logs
               </Text>
               <Text variant="bodySmall" style={styles.helpText}>
-                All console output is automatically saved to file
+                All console output is automatically saved to file.
+                Upload logs to let Claude analyze them.
               </Text>
 
               {/* Log File Info */}
@@ -242,40 +284,27 @@ export default function SettingsScreen() {
                     Status: {logFileInfo.exists ? '✅ Active' : '❌ Not created yet'}
                   </Text>
                   {logFileInfo.exists && (
-                    <>
-                      <Text variant="bodySmall" style={styles.logInfoText}>
-                        Size: {logFileInfo.sizeKB} ({logFileInfo.sizeMB})
-                      </Text>
-                      <Text variant="bodySmall" style={styles.logInfoText} numberOfLines={1}>
-                        Path: {logFileInfo.path}
-                      </Text>
-                    </>
+                    <Text variant="bodySmall" style={styles.logInfoText}>
+                      Size: {logFileInfo.sizeKB} ({logFileInfo.sizeMB})
+                    </Text>
                   )}
                 </View>
               )}
 
-              <View style={styles.sizeButtons}>
+              <View style={styles.logButtons}>
                 <Button
-                  mode="outlined"
-                  onPress={handleViewLogs}
-                  icon="file-document"
-                  style={styles.logButton}
+                  mode="contained"
+                  onPress={handleUploadLogs}
+                  icon="cloud-upload"
+                  style={styles.uploadButton}
                 >
-                  View Logs
-                </Button>
-                <Button
-                  mode="outlined"
-                  onPress={shareLogs}
-                  icon="share"
-                  style={styles.logButton}
-                >
-                  Share Logs
+                  Upload for Claude
                 </Button>
                 <Button
                   mode="outlined"
                   onPress={handleClearLogs}
                   icon="delete"
-                  style={styles.logButton}
+                  style={styles.clearButton}
                 >
                   Clear Logs
                 </Button>
@@ -382,16 +411,25 @@ const styles = StyleSheet.create({
   resetButton: {
     borderColor: '#6B7280',
   },
-  logButton: {
+  logButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  uploadButton: {
     flex: 1,
-    marginTop: 8,
+    backgroundColor: '#3B82F6',
+  },
+  clearButton: {
+    flex: 1,
+    borderColor: '#EF4444',
   },
   logInfo: {
     backgroundColor: '#374151',
     padding: 12,
     borderRadius: 8,
     marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   logInfoText: {
     color: '#D1D5DB',

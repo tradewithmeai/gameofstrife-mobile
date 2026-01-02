@@ -49,6 +49,20 @@ await fastify.register(fastifySocketIO, {
   },
 })
 
+// In-memory log storage (session ID -> log data)
+const logStorage = new Map<string, { logs: string; timestamp: Date; expiresAt: Date }>()
+
+// Clean up old logs every hour
+setInterval(() => {
+  const now = new Date()
+  for (const [sessionId, data] of logStorage.entries()) {
+    if (data.expiresAt < now) {
+      logStorage.delete(sessionId)
+      logger.info(`Cleaned up expired log session: ${sessionId}`)
+    }
+  }
+}, 60 * 60 * 1000) // 1 hour
+
 // Health check endpoint
 fastify.get('/health', async (_request, _reply) => {
   return {
@@ -57,6 +71,64 @@ fastify.get('/health', async (_request, _reply) => {
     uptime: process.uptime(),
     engine: 'gameofstrife',
     matchMode: MATCH_MODE,
+  }
+})
+
+// Upload logs endpoint
+fastify.post('/logs', async (request, reply) => {
+  try {
+    const { logs } = request.body as { logs: string }
+
+    if (!logs || typeof logs !== 'string') {
+      return reply.code(400).send({ error: 'Invalid logs data' })
+    }
+
+    // Generate session ID (6 random chars)
+    const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase()
+
+    // Store logs with 24 hour expiration
+    const now = new Date()
+    const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+
+    logStorage.set(sessionId, {
+      logs,
+      timestamp: now,
+      expiresAt
+    })
+
+    logger.info(`Stored logs with session ID: ${sessionId}`)
+
+    return {
+      sessionId,
+      url: `https://gameofstrife-mobile-production.up.railway.app/logs/${sessionId}`,
+      expiresAt: expiresAt.toISOString()
+    }
+  } catch (error) {
+    logger.error('Failed to store logs:', error)
+    return reply.code(500).send({ error: 'Failed to store logs' })
+  }
+})
+
+// Retrieve logs endpoint
+fastify.get('/logs/:sessionId', async (request, reply) => {
+  try {
+    const { sessionId } = request.params as { sessionId: string }
+
+    const logData = logStorage.get(sessionId)
+
+    if (!logData) {
+      return reply.code(404).send({ error: 'Log session not found or expired' })
+    }
+
+    return {
+      sessionId,
+      logs: logData.logs,
+      timestamp: logData.timestamp.toISOString(),
+      expiresAt: logData.expiresAt.toISOString()
+    }
+  } catch (error) {
+    logger.error('Failed to retrieve logs:', error)
+    return reply.code(500).send({ error: 'Failed to retrieve logs' })
   }
 })
 

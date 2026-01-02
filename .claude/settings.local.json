@@ -10,7 +10,9 @@
       "Bash(npx expo install:*)",
       "Bash(curl:*)",
       "Bash(npm install:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git tag:*)",
+      "Bash(npm run build:production:*)"
     ]
   }
 }
