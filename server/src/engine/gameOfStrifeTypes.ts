@@ -60,6 +60,9 @@ export interface GameOfStrifeEngineState extends Omit<EngineState, 'board'> {
     player1: number        // Remaining tokens for P2 (player 1)
   }
 
+  // Turn tracking for net placements
+  turnNetPlacements?: number  // Net placements this turn (deletions = -1, placements = +1)
+
   // Placement history
   placements: TokenPlacement[]
 

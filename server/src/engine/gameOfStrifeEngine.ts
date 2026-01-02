@@ -41,6 +41,7 @@ export class GameOfStrifeEngine implements GameEngine {
         player0: this.settings.tokensPerPlayer,
         player1: this.settings.tokensPerPlayer
       },
+      turnNetPlacements: 0, // Track net placements for current turn
       placements: []
     }
 
@@ -178,6 +179,7 @@ export class GameOfStrifeEngine implements GameEngine {
     // Handle token counting and phase management
     let nextTurn: 'P1' | 'P2' | null
     let newPlayerTokens: { player0: number; player1: number } | undefined
+    let newTurnNetPlacements: number | undefined
 
     if ('currentPhase' in gosState && gosState.playerTokens) {
       // Update token count for GameOfStrife state
@@ -187,7 +189,9 @@ export class GameOfStrifeEngine implements GameEngine {
       if (isRemoval) {
         // Restore token count when removing
         newPlayerTokens[tokensKey]++;
-        // IMPORTANT: Keep turn with same player when removing own token
+        // Decrement net placements (can go negative)
+        newTurnNetPlacements = (gosState.turnNetPlacements || 0) - 1
+        // Keep turn with same player when removing own token
         nextTurn = seat;
       } else {
         // Decrease token count when placing
@@ -198,8 +202,20 @@ export class GameOfStrifeEngine implements GameEngine {
 
         if (totalTokensRemaining === 0) {
           nextTurn = null // No more turns during simulation
+          newTurnNetPlacements = 0 // Reset for simulation phase
         } else {
-          nextTurn = seat === 'P1' ? 'P2' : 'P1'
+          // Track net placements this turn to allow free replacements
+          const turnNetPlacements = (gosState.turnNetPlacements || 0) + 1
+
+          // Only switch turn if player has made a net placement of at least 1 token
+          if (turnNetPlacements >= 1) {
+            nextTurn = seat === 'P1' ? 'P2' : 'P1'
+            newTurnNetPlacements = 0 // Reset for next player's turn
+          } else {
+            // Keep turn with same player (they're still replacing deleted tokens)
+            nextTurn = seat
+            newTurnNetPlacements = turnNetPlacements
+          }
         }
       }
     } else {
@@ -219,6 +235,11 @@ export class GameOfStrifeEngine implements GameEngine {
     // Apply token counts and phase update if this is a proper GameOfStrife state
     if (newPlayerTokens) {
       updatedGoSState.playerTokens = newPlayerTokens
+
+      // Update turn net placements tracker
+      if (newTurnNetPlacements !== undefined) {
+        updatedGoSState.turnNetPlacements = newTurnNetPlacements
+      }
 
       // Update phase if all tokens placed
       const totalTokensRemaining = newPlayerTokens.player0 + newPlayerTokens.player1
