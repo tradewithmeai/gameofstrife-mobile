@@ -318,6 +318,21 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
   // Handle return to lobby
   const handleReturnToLobby = useCallback(() => {
+    // Clear simulation state to hide modal
+    setSimulationComplete(false);
+    setFinalScores(null);
+    setSimulationBoard(null);
+    setIsSimulating(false);
+    setSimulationGeneration(0);
+    hasStartedSimulation.current = false;
+
+    // Clear any running timers
+    if (simulationTimerRef.current) {
+      clearTimeout(simulationTimerRef.current);
+      simulationTimerRef.current = null;
+    }
+
+    // Navigate back to lobby
     onReturnToLobby();
   }, [onReturnToLobby]);
 
