@@ -14,13 +14,9 @@ export class RoomManager {
   }
 
   generateRoomCode(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    const prefix = 'ROOM-'
-    let code = ''
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return prefix + code
+    // Generate 3-digit number (100-999) for easier testing
+    const code = Math.floor(Math.random() * 900) + 100
+    return code.toString()
   }
 
   generateRoomId(): string {
