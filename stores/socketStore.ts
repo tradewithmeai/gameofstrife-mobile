@@ -384,7 +384,12 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       });
     }
 
+    // Preserve placementCounts from frontend state (don't let server overwrite them)
+    const currentPlacementCounts = state.matchState.metadata?.placementCounts;
     let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
+    if (currentPlacementCounts && updatedMetadata) {
+      updatedMetadata.placementCounts = currentPlacementCounts;
+    }
 
     // Verify manifests are preserved
     console.log('🔍 [SquareClaimed] Manifests after merge:', {
@@ -392,6 +397,13 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       hasPlayer1: !!updatedMetadata?.player1Superpowers,
       player0Count: updatedMetadata?.player0Superpowers?.filter((s: number) => s > 0).length || 0,
       player1Count: updatedMetadata?.player1Superpowers?.filter((s: number) => s > 0).length || 0
+    });
+
+    // Check placement counts BEFORE increment
+    console.log('🔍 [SquareClaimed] Placement counts BEFORE increment:', {
+      counts: updatedMetadata?.placementCounts,
+      boardSquareValue: data.board[data.squareId],
+      isNull: data.board[data.squareId] === null
     });
 
     // Track placement counts for superpower manifest lookup
