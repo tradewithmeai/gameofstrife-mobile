@@ -79,7 +79,16 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     const metadata = (matchState as any).metadata || {};
     devLog('[GameOfStrife] Metadata summary:', summarize(metadata));
 
-    // Determine board size
+    // Determine board size with validation
+    const expectedLength = metadata.boardSize ? metadata.boardSize * metadata.boardSize : matchState.board.length;
+    if (matchState.board.length !== expectedLength) {
+      console.error('[GameOfStrife] CRITICAL: Board length mismatch!', {
+        metadataBoardSize: metadata.boardSize,
+        flatBoardLength: matchState.board.length,
+        expected: expectedLength
+      });
+    }
+
     const boardSize = metadata.boardSize || Math.sqrt(matchState.board.length);
     console.log('🎮 [GameOfStrife] Board reconstruction - size:', boardSize, 'flat length:', matchState.board.length);
 
@@ -98,6 +107,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       }
     }
     console.log('🎮 [GameOfStrife] Token positions on board:', tokenPositions);
+    console.log('🎮 [GameOfStrife] Seat:', mySeat, '| BoardSize:', boardSize, '| Expected cells:', boardSize * boardSize);
 
     // Check if any cells have superpowers
     if (board && board.length > 0) {
