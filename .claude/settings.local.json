@@ -9,7 +9,8 @@
       "Bash(npm start)",
       "Bash(npx expo install:*)",
       "Bash(curl:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebSearch"
     ]
   }
 }

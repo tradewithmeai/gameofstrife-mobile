@@ -362,6 +362,19 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       stateHasFullBoard: !!(state.matchState.metadata?.fullBoard)
     });
 
+    // Log the actual fullBoard cell for this square
+    if (data.metadata?.fullBoard && data.squareId !== undefined) {
+      const boardSize = data.metadata.boardSize || 20;
+      const row = Math.floor(data.squareId / boardSize);
+      const col = data.squareId % boardSize;
+      const cell = data.metadata.fullBoard[row]?.[col];
+      console.log('[SquareClaimed] Server fullBoard cell:', {
+        squareId: data.squareId,
+        row, col,
+        cell: cell ? { player: cell.player, alive: cell.alive, superpowerType: cell.superpowerType } : 'undefined'
+      });
+    }
+
     let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
 
     const newState = {
