@@ -1,8 +1,8 @@
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, TextInput, Chip } from 'react-native-paper';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSettingsStore, DEFAULT_GAME_SETTINGS } from '../../stores/settingsStore';
-import { getLogs, shareLogs, clearLogs, DEV_MODE } from '../../utils/devMode';
+import { getLogs, shareLogs, clearLogs, getLogFileInfo, DEV_MODE } from '../../utils/devMode';
 
 export default function SettingsScreen() {
   const { settings, setSettings, resetToDefaults, isLoading } = useSettingsStore();
@@ -13,6 +13,19 @@ export default function SettingsScreen() {
   const [survivalRules, setSurvivalRules] = useState(settings.survivalRules.join(','));
   const [superpowerPercentage, setSuperpowerPercentage] = useState(settings.superpowerPercentage);
   const [enabledSuperpowers, setEnabledSuperpowers] = useState(settings.enabledSuperpowers);
+  const [logFileInfo, setLogFileInfo] = useState<{ exists: boolean; sizeKB: string; sizeMB: string; path: string } | null>(null);
+
+  // Load log file info when component mounts
+  useEffect(() => {
+    if (DEV_MODE) {
+      loadLogFileInfo();
+    }
+  }, []);
+
+  const loadLogFileInfo = async () => {
+    const info = await getLogFileInfo();
+    setLogFileInfo(info);
+  };
 
   const superpowerTypes = [
     { id: 1, name: 'Tank', color: '#FFFFFF' },
@@ -69,6 +82,7 @@ export default function SettingsScreen() {
 
   const handleClearLogs = async () => {
     await clearLogs();
+    await loadLogFileInfo(); // Refresh file info
     Alert.alert('Success', 'Logs cleared');
   };
 
@@ -218,8 +232,28 @@ export default function SettingsScreen() {
                 Debug Logs
               </Text>
               <Text variant="bodySmall" style={styles.helpText}>
-                Verbose logs are saved to file to reduce console spam
+                All console output is automatically saved to file
               </Text>
+
+              {/* Log File Info */}
+              {logFileInfo && (
+                <View style={styles.logInfo}>
+                  <Text variant="bodySmall" style={styles.logInfoText}>
+                    Status: {logFileInfo.exists ? '✅ Active' : '❌ Not created yet'}
+                  </Text>
+                  {logFileInfo.exists && (
+                    <>
+                      <Text variant="bodySmall" style={styles.logInfoText}>
+                        Size: {logFileInfo.sizeKB} ({logFileInfo.sizeMB})
+                      </Text>
+                      <Text variant="bodySmall" style={styles.logInfoText} numberOfLines={1}>
+                        Path: {logFileInfo.path}
+                      </Text>
+                    </>
+                  )}
+                </View>
+              )}
+
               <View style={styles.sizeButtons}>
                 <Button
                   mode="outlined"
@@ -351,6 +385,18 @@ const styles = StyleSheet.create({
   logButton: {
     flex: 1,
     marginTop: 8,
+  },
+  logInfo: {
+    backgroundColor: '#374151',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  logInfoText: {
+    color: '#D1D5DB',
+    marginBottom: 4,
+    fontFamily: 'monospace',
   },
   marginTop: {
     marginTop: 16,
