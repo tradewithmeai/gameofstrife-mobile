@@ -32,6 +32,18 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   // Log component render to verify code is loaded
   devLog('[GameBoard] Component rendered - per-cell Pressable approach');
 
+  // Log a few cells to see what we're actually rendering
+  if (board && board.length > 0) {
+    console.log('[GameBoard] Board structure check:', {
+      boardLength: board.length,
+      firstRowLength: board[0]?.length,
+      is2D: Array.isArray(board[0]),
+      row0col19: board[0]?.[19] ? { player: board[0][19].player, alive: board[0][19].alive } : 'undefined',
+      row1col19: board[1]?.[19] ? { player: board[1][19].player, alive: board[1][19].alive } : 'undefined',
+      row2col19: board[2]?.[19] ? { player: board[2][19].player, alive: board[2][19].alive } : 'undefined'
+    });
+  }
+
   // Handle token placement during drag
   const handlePlacement = useCallback((row: number, col: number) => {
     console.log('[GameBoard] handlePlacement called:', { row, col, isPlacementStage, isMyTurn, isFinished });
