@@ -142,10 +142,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [isPlacementStage, isMyTurn, isFinished, board, boardSize, onGameAction, mySeat]);
 
-  // Measure board layout on mount and when it changes
+  // Measure board layout on mount and when it changes (for debugging only)
   const handleLayout = useCallback(() => {
     boardRef.current?.measureInWindow((x, y, width, height) => {
-      boardLayout.current = { x, y, width, height };
       const BOARD_BORDER = 2;
       const usableWidth = width - (BOARD_BORDER * 2);
       const calculatedCellSize = usableWidth / boardSize;
