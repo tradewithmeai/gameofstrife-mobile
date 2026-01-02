@@ -20,8 +20,62 @@ export class GameOfStrifeEngine implements GameEngine {
     this.settings = { ...DEFAULT_GAME_SETTINGS, ...settings }
   }
 
+  /**
+   * Generate a manifest of pre-allocated superpowers for a player
+   * Ensures even distribution by guaranteeing exact percentage
+   */
+  private generateSuperpowerManifest(
+    tokensPerPlayer: number,
+    superpowerPercentage: number,
+    enabledSuperpowers: number[]
+  ): number[] {
+    // Calculate how many superpowers this player should get
+    const superpowerCount = Math.floor(tokensPerPlayer * (superpowerPercentage / 100))
+
+    // Create array of all zeros (normal cells)
+    const manifest: number[] = new Array(tokensPerPlayer).fill(0)
+
+    // If no superpowers enabled or count is 0, return all zeros
+    if (enabledSuperpowers.length === 0 || superpowerCount === 0) {
+      return manifest
+    }
+
+    // Randomly select indices for superpower placements
+    const superpowerIndices = new Set<number>()
+    while (superpowerIndices.size < superpowerCount) {
+      const randomIndex = Math.floor(Math.random() * tokensPerPlayer)
+      superpowerIndices.add(randomIndex)
+    }
+
+    // Assign random superpower types to selected indices
+    superpowerIndices.forEach(index => {
+      const randomSuperpowerIndex = Math.floor(Math.random() * enabledSuperpowers.length)
+      manifest[index] = enabledSuperpowers[randomSuperpowerIndex]
+    })
+
+    return manifest
+  }
+
   initState(): EngineState {
     const board = createBoard(this.settings.boardSize)
+
+    // Generate superpower manifests for both players
+    const player0Superpowers = this.generateSuperpowerManifest(
+      this.settings.tokensPerPlayer,
+      this.settings.superpowerPercentage,
+      this.settings.enabledSuperpowers
+    )
+    const player1Superpowers = this.generateSuperpowerManifest(
+      this.settings.tokensPerPlayer,
+      this.settings.superpowerPercentage,
+      this.settings.enabledSuperpowers
+    )
+
+    logger.debug('[GameEngine] Generated superpower manifests', {
+      player0Count: player0Superpowers.filter(s => s > 0).length,
+      player1Count: player1Superpowers.filter(s => s > 0).length,
+      percentage: this.settings.superpowerPercentage
+    })
 
     const gameOfStrifeState: GameOfStrifeEngineState = {
       // Base EngineState properties - use 2D board for internal storage
@@ -42,6 +96,8 @@ export class GameOfStrifeEngine implements GameEngine {
         player1: this.settings.tokensPerPlayer
       },
       turnNetPlacements: 0, // Track net placements for current turn
+      player0Superpowers, // Pre-allocated superpowers for P1
+      player1Superpowers, // Pre-allocated superpowers for P2
       placements: []
     }
 

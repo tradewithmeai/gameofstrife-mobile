@@ -235,21 +235,30 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
     switch (action.type) {
       case 'PLACE_TOKEN':
-        // For Game of Strife, randomly assign superpower based on game settings
-        // Extract settings from gameData (sent from backend)
-        const superpowerPercentage = gameData.settings?.superpowerPercentage ?? 20;
-        const enabledSuperpowers = gameData.settings?.enabledSuperpowers ?? [1, 2, 3, 4, 5, 6, 7];
+        // For Game of Strife, use pre-allocated superpower from manifest
+        // Extract metadata from gameData (sent from backend)
+        const metadata = (matchState as any)?.metadata || {};
+        const placementCounts = metadata.placementCounts || { player0: 0, player1: 0 };
 
-        console.log('[GameOfStrife] Superpower config:', { superpowerPercentage, enabledSuperpowers });
+        // Determine which player's manifest to use based on seat
+        const playerKey = mySeat === 'P1' ? 'player0' : 'player1';
+        const playerManifest = mySeat === 'P1' ? metadata.player0Superpowers : metadata.player1Superpowers;
+        const currentPlacementIndex = placementCounts[playerKey] || 0;
 
-        // Randomly assign superpower based on settings
+        // Look up superpower from manifest (default to 0 if manifest not available)
         let superpowerType = 0; // Normal cell by default
-        if (enabledSuperpowers.length > 0 && Math.random() < (superpowerPercentage / 100)) {
-          const randomIndex = Math.floor(Math.random() * enabledSuperpowers.length);
-          superpowerType = enabledSuperpowers[randomIndex];
+        if (playerManifest && currentPlacementIndex < playerManifest.length) {
+          superpowerType = playerManifest[currentPlacementIndex];
         }
 
-        console.log('[GameOfStrife] Placing token at position:', action.payload.position, 'superpowerType:', superpowerType);
+        console.log('[GameOfStrife] Placing token with manifest superpower:', {
+          position: action.payload.position,
+          mySeat,
+          placementIndex: currentPlacementIndex,
+          superpowerType,
+          manifestLength: playerManifest?.length || 0
+        });
+
         // Convert to socket claim square action with superpowerType
         onAction(action.payload.position, superpowerType);
         break;

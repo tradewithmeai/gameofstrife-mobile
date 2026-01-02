@@ -142,7 +142,9 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
                 conwayRules: (matchState.engineState as any)?.conwayRules,
                 stage: (matchState.engineState as any)?.currentPhase,
                 settings: matchState.gameSettings,
-                fullBoard: (matchState.engineState as any)?.board
+                fullBoard: (matchState.engineState as any)?.board,
+                player0Superpowers: (matchState.engineState as any)?.player0Superpowers,
+                player1Superpowers: (matchState.engineState as any)?.player1Superpowers
               }
             })
           }
@@ -300,7 +302,9 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
               conwayRules: (newMatch.engineState as any)?.conwayRules,
               stage: (newMatch.engineState as any)?.currentPhase,
               settings: newMatch.gameSettings,
-              fullBoard: (newMatch.engineState as any)?.board
+              fullBoard: (newMatch.engineState as any)?.board,
+              player0Superpowers: (newMatch.engineState as any)?.player0Superpowers,
+              player1Superpowers: (newMatch.engineState as any)?.player1Superpowers
             }
           })
         }

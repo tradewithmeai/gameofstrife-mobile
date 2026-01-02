@@ -257,6 +257,12 @@ const onMatchStart = (data: Match & { matchId?: string; mySeat?: 'P1' | 'P2'; cu
   // Server provides board in data for both initial match and rematch
   const board = (data as any).board || Array(9).fill(null)
 
+  // Initialize metadata with placement counts for superpower tracking
+  const metadata = (data as any).metadata || {}
+  if (!metadata.placementCounts) {
+    metadata.placementCounts = { player0: 0, player1: 0 }
+  }
+
   const newMatchState: MatchState = {
     id: data.matchId,
     roomId: data.roomId,
@@ -271,7 +277,7 @@ const onMatchStart = (data: Match & { matchId?: string; mySeat?: 'P1' | 'P2'; cu
     startedAt: data.startedAt,
     finishedAt: undefined,
     gameType: (data as any).gameType,
-    metadata: (data as any).metadata
+    metadata: metadata
   }
 
   // Update match with normalized players
@@ -376,6 +382,27 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
     }
 
     let updatedMetadata = data.metadata ? { ...state.matchState.metadata, ...data.metadata } : state.matchState.metadata;
+
+    // Track placement counts for superpower manifest lookup
+    // Increment count only for placements (when cell becomes non-null)
+    if (updatedMetadata && data.board[data.squareId] !== null) {
+      // Determine which player made this move
+      const playerIndex = state.matchState.players.indexOf(data.by)
+      if (playerIndex >= 0) {
+        const playerKey = playerIndex === 0 ? 'player0' : 'player1'
+        if (!updatedMetadata.placementCounts) {
+          updatedMetadata.placementCounts = { player0: 0, player1: 0 }
+        }
+        updatedMetadata.placementCounts = {
+          ...updatedMetadata.placementCounts,
+          [playerKey]: updatedMetadata.placementCounts[playerKey] + 1
+        }
+        console.log('[SquareClaimed] Incremented placement count:', {
+          player: playerKey,
+          count: updatedMetadata.placementCounts[playerKey]
+        })
+      }
+    }
 
     const newState = {
       ...state.matchState,

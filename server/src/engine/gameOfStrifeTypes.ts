@@ -63,6 +63,10 @@ export interface GameOfStrifeEngineState extends Omit<EngineState, 'board'> {
   // Turn tracking for net placements
   turnNetPlacements?: number  // Net placements this turn (deletions = -1, placements = +1)
 
+  // Superpower allocation manifests (pre-assigned per player for even distribution)
+  player0Superpowers?: number[]  // Array of superpowerTypes for P1 tokens (index = placement order)
+  player1Superpowers?: number[]  // Array of superpowerTypes for P2 tokens (index = placement order)
+
   // Placement history
   placements: TokenPlacement[]
 
