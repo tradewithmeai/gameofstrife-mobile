@@ -240,15 +240,21 @@ const onMatchStart = (data: Match & { matchId?: string; mySeat?: 'P1' | 'P2'; cu
     if (data.players.length > 0 && typeof data.players[0] === 'object' && 'seat' in data.players[0]) {
       // Server already provides players with seat info
       normalizedPlayers = data.players as { id: string; seat: 'P1' | 'P2' }[]
-    } else if (typeof data.players[0] === 'string') {
+    } else if (data.players.length > 0 && typeof data.players[0] === 'string') {
       // Server provides socket IDs without seat, derive seats deterministically (P1 is starter)
       normalizedPlayers = (data.players as string[]).map((id, index) => ({
         id,
         seat: index === 0 ? 'P1' : 'P2' as 'P1' | 'P2'
       }))
+    } else if (data.players.length > 0 && typeof data.players[0] === 'object') {
+      // Handle Player objects from server (with id, isReady, joinedAt, socketId, etc.)
+      normalizedPlayers = (data.players as any[]).map((player, index) => ({
+        id: player.id || player.socketId, // Use id field, fallback to socketId
+        seat: index === 0 ? 'P1' : 'P2' as 'P1' | 'P2'
+      }))
     }
   } else if (data.players) {
-    // Handle legacy players array format from Match interface
+    // Handle non-array players (shouldn't happen with current server)
     normalizedPlayers = (data.players as any[]).map((player, index) => ({
       id: player.id,
       seat: index === 0 ? 'P1' : 'P2' as 'P1' | 'P2'
