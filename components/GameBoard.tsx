@@ -150,8 +150,16 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Calculate board dimensions - move outside JSX so we can use in handlers
   const screenWidth = Dimensions.get('window').width;
-  const boardDimension = React.useMemo(() => Math.min(screenWidth * 0.95, 500), [screenWidth]);
-  const cellSize = boardDimension / boardSize;
+  const boardDimension = React.useMemo(() => {
+    const maxWidth = Math.min(screenWidth * 0.9, 450); // Reduced from 0.95 and 500
+    return maxWidth;
+  }, [screenWidth]);
+
+  // Account for board border when calculating cell size
+  const boardBorderWidth = 2;
+  const totalBorderWidth = boardBorderWidth * 2; // left + right borders
+  const availableSpace = boardDimension - totalBorderWidth;
+  const cellSize = availableSpace / boardSize;
 
   return (
     <View style={styles.container}>
@@ -190,10 +198,10 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#111827',
+    paddingVertical: 16,
   },
   board: {
     flexDirection: 'row',
@@ -205,7 +213,6 @@ const styles = StyleSheet.create({
   cell: {
     borderWidth: 0.5,
     borderColor: '#4B5563',
-    aspectRatio: 1,
   },
   cellEmpty: {
     backgroundColor: '#1F2937',
