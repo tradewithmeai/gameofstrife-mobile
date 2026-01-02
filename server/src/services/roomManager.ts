@@ -208,16 +208,8 @@ export class RoomManager {
   getAllWaitingRooms(userId: string, limit = 50): Room[] {
     return Array.from(this.rooms.values())
       .filter(room => {
-        // Include if room is waiting
-        if (room.status !== 'waiting') return false
-
-        // Include if user is in the room (own rooms)
-        const isOwnRoom = room.players.some(p => p.id === userId)
-
-        // Include if room is public
-        const isPublicRoom = room.isPublic
-
-        return isOwnRoom || isPublicRoom
+        // Include all waiting rooms
+        return room.status === 'waiting'
       })
       .sort((a, b) => {
         // Sort own rooms first, then by creation time

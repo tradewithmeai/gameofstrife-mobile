@@ -73,8 +73,8 @@ export default function LobbyScreen() {
   };
 
   const handleCreateRoom = () => {
-    console.log('[LobbyScreen] Creating private room with settings:', settings);
-    createRoom(false, settings);
+    console.log('[LobbyScreen] Creating room with settings:', settings);
+    createRoom(true, settings);
   };
 
   const handleCopyCode = async () => {
@@ -201,7 +201,7 @@ export default function LobbyScreen() {
           disabled={!isConnected || inMatch}
           icon="plus-circle"
         >
-          Create Private Room
+          Create Room
         </Button>
 
         {/* Join Room - always available */}
