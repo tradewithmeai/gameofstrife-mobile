@@ -12,6 +12,17 @@ const LOG_FILE_PATH = `${FileSystem.documentDirectory}game-debug.log`;
 // In-memory log buffer (last 100 lines)
 let logBuffer: string[] = [];
 const MAX_BUFFER_SIZE = 100;
+const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB max
+
+// Store original console methods
+const originalConsole = {
+  log: console.log,
+  error: console.error,
+  warn: console.warn,
+};
+
+// Flag to track if we've intercepted console
+let consoleIntercepted = false;
 
 /**
  * Write to log file
@@ -20,7 +31,7 @@ const writeToFile = async (message: string) => {
   if (!DEV_MODE) return;
 
   try {
-    const timestamp = new Date().toISOString().split('T')[1].slice(0, -1); // Just time part
+    const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] ${message}\n`;
 
     // Add to buffer
@@ -29,8 +40,17 @@ const writeToFile = async (message: string) => {
       logBuffer.shift();
     }
 
-    // Check if file exists
+    // Check file size before writing
     const fileInfo = await FileSystem.getInfoAsync(LOG_FILE_PATH);
+
+    if (fileInfo.exists && fileInfo.size && fileInfo.size > MAX_LOG_SIZE) {
+      // File too large, keep only last 50%
+      const content = await FileSystem.readAsStringAsync(LOG_FILE_PATH);
+      const lines = content.split('\n');
+      const keepLines = Math.floor(lines.length / 2);
+      const truncated = lines.slice(-keepLines).join('\n') + '\n';
+      await FileSystem.writeAsStringAsync(LOG_FILE_PATH, truncated);
+    }
 
     if (fileInfo.exists) {
       // Append to existing file
@@ -47,6 +67,39 @@ const writeToFile = async (message: string) => {
   } catch (error) {
     // Silent fail - don't spam console with file errors
   }
+};
+
+/**
+ * Format args for logging
+ */
+const formatArgs = (args: any[]): string => {
+  return args
+    .map((arg) => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    })
+    .join(' ');
+};
+
+/**
+ * Create log interceptor for console methods
+ */
+const createLogInterceptor = (level: string, originalMethod: (...args: any[]) => void) => {
+  return (...args: any[]) => {
+    // Always show in console
+    originalMethod(...args);
+
+    // Also write to file (async, non-blocking)
+    const message = `${level}: ${formatArgs(args)}`;
+    writeToFile(message).catch(() => {
+      // Silent fail
+    });
+  };
 };
 
 /**
@@ -164,7 +217,33 @@ export const summarize = (obj: any, maxDepth = 1): any => {
 };
 
 /**
+ * Get log file info
+ */
+export const getLogFileInfo = async () => {
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(LOG_FILE_PATH);
+    const size = fileInfo.exists && fileInfo.size ? fileInfo.size : 0;
+    return {
+      path: LOG_FILE_PATH,
+      exists: fileInfo.exists,
+      size,
+      sizeKB: (size / 1024).toFixed(2) + ' KB',
+      sizeMB: (size / 1024 / 1024).toFixed(2) + ' MB',
+    };
+  } catch (error) {
+    return {
+      path: LOG_FILE_PATH,
+      exists: false,
+      size: 0,
+      sizeKB: '0 KB',
+      sizeMB: '0 MB',
+    };
+  }
+};
+
+/**
  * Initialize logging - call this at app start
+ * This intercepts console.log, console.error, console.warn
  */
 export const initLogging = async () => {
   if (!DEV_MODE) return;
@@ -172,9 +251,27 @@ export const initLogging = async () => {
   try {
     // Clear old logs on init
     await clearLogs();
-    console.log('📝 File logging initialized:', LOG_FILE_PATH);
-    console.log('💡 Verbose logs are saved to file. Use getLogs() to view.');
+
+    // Intercept console methods (only once)
+    if (!consoleIntercepted) {
+      consoleIntercepted = true;
+      console.log = createLogInterceptor('LOG', originalConsole.log);
+      console.error = createLogInterceptor('ERROR', originalConsole.error);
+      console.warn = createLogInterceptor('WARN', originalConsole.warn);
+    }
+
+    originalConsole.log('✅ Logs cleared');
+    originalConsole.log('📝 File logging initialized:', LOG_FILE_PATH);
+    originalConsole.log('💡 Verbose logs are saved to file. Use getLogs() to view.');
   } catch (error) {
-    console.error('Failed to initialize logging:', error);
+    originalConsole.error('Failed to initialize logging:', error);
   }
 };
+
+// Make functions available globally for debugging in console
+if (typeof global !== 'undefined') {
+  (global as any).getLogs = getLogs;
+  (global as any).clearLogs = clearLogs;
+  (global as any).getLogFileInfo = getLogFileInfo;
+  (global as any).shareLogs = shareLogs;
+}
