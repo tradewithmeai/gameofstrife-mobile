@@ -159,7 +159,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [boardSize]);
 
-  // Handle press-in using Pressable's locationX/Y (always correct relative to view)
+  // Handle press-in with coordinate method detection
   const handlePressIn = useCallback((e: GestureResponderEvent) => {
     console.log('[GameBoard] Press in:', { isPlacementStage, isMyTurn, isFinished });
     if (!isPlacementStage || !isMyTurn) return;
@@ -168,11 +168,36 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     lastPlacedCell.current = null;
 
     const touch = e.nativeEvent;
-    const x = touch.locationX;
-    const y = touch.locationY;
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      console.log('[GameBoard] Press coords:', { locationX: x, locationY: y });
+      // Try both coordinate methods
+      const locationX = touch.locationX;
+      const locationY = touch.locationY;
+      const pageX = touch.pageX - boardX;
+      const pageY = touch.pageY - boardY;
+
+      console.log('[GameBoard] Coordinates:', {
+        locationXY: { x: locationX, y: locationY },
+        pageXY: { x: pageX, y: pageY },
+        boardPos: { x: boardX, y: boardY }
+      });
+
+      // Detect if locationXY is broken (Chromebook issue)
+      // If locationXY is very close to origin (<50px) but pageXY is far (>100px),
+      // locationXY is broken - use pageXY instead
+      const locationDist = Math.sqrt(locationX ** 2 + locationY ** 2);
+      const pageDist = Math.sqrt(pageX ** 2 + pageY ** 2);
+      const useBrokenFallback = locationDist < 50 && pageDist > 100;
+
+      const x = useBrokenFallback ? pageX : locationX;
+      const y = useBrokenFallback ? pageY : locationY;
+
+      console.log('[GameBoard] Using coords:', {
+        method: useBrokenFallback ? 'pageXY (locationXY broken)' : 'locationXY',
+        x, y,
+        locationDist: locationDist.toFixed(2),
+        pageDist: pageDist.toFixed(2)
+      });
 
       const cell = getCellFromPosition(x, y, width, height);
       console.log('[GameBoard] Calculated cell:', cell);
@@ -187,10 +212,21 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     if (!isDragging || !isPlacementStage || !isMyTurn) return;
 
     const touch = e.nativeEvent;
-    const x = touch.locationX;
-    const y = touch.locationY;
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
+      const locationX = touch.locationX;
+      const locationY = touch.locationY;
+      const pageX = touch.pageX - boardX;
+      const pageY = touch.pageY - boardY;
+
+      // Detect if locationXY is broken
+      const locationDist = Math.sqrt(locationX ** 2 + locationY ** 2);
+      const pageDist = Math.sqrt(pageX ** 2 + pageY ** 2);
+      const useBrokenFallback = locationDist < 50 && pageDist > 100;
+
+      const x = useBrokenFallback ? pageX : locationX;
+      const y = useBrokenFallback ? pageY : locationY;
+
       const cell = getCellFromPosition(x, y, width, height);
       if (cell) {
         handlePlacement(cell.row, cell.col);
@@ -259,7 +295,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Method: locationXY (Pressable)
+        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Auto-detect: locationXY/pageXY
       </Text>
       <Pressable
         ref={boardRef}
