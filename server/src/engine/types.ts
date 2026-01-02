@@ -19,6 +19,7 @@ export interface ClaimApplication {
   version: number
   nextTurn: 'P1' | 'P2' | null
   engineState?: any // Optional engine-specific state for complex games
+  wasRemoval?: boolean // True if this was a token removal operation
 }
 
 export interface WinCheckResult {

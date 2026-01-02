@@ -379,8 +379,8 @@ export class MatchService {
     }
     match.moves.push(move)
 
-    // Update rate limit
-    this.updateRateLimit(matchId, playerId, selectionId)
+    // Update rate limit - pass wasRemoval flag from engine
+    this.updateRateLimit(matchId, playerId, selectionId, claimApplication.wasRemoval || false)
 
     // Check for game result using engine
     const updatedEngineState = match.engineState || {
@@ -437,8 +437,8 @@ export class MatchService {
       timestamp: new Date()
     })
 
-    // Update rate limit
-    this.updateRateLimit(matchId, playerId, selectionId)
+    // Update rate limit (simul mode doesn't support removals)
+    this.updateRateLimit(matchId, playerId, selectionId, false)
 
     logger.debug('Simul claim buffered', { matchId, windowId: match.currentWindowId, seat: playerSeat, squareId })
 
@@ -718,18 +718,25 @@ export class MatchService {
     return playerLimit.claims.length < 10
   }
 
-  private updateRateLimit(matchId: string, playerId: string, selectionId: string): void {
+  private updateRateLimit(matchId: string, playerId: string, selectionId: string, isRemoval: boolean = false): void {
     const matchLimits = this.rateLimits.get(matchId)
     if (!matchLimits) return
 
     const playerLimit = matchLimits.get(playerId)
     if (!playerLimit) return
 
+    // Always track in claims array for sliding window rate limit
     playerLimit.claims.push({
       timestamp: new Date(),
       selectionId,
     })
-    playerLimit.acceptedClaims++
+
+    // Track net placements: increment for placements, decrement for removals
+    if (isRemoval) {
+      playerLimit.acceptedClaims--
+    } else {
+      playerLimit.acceptedClaims++
+    }
   }
 
   private logClaimDecision(params: {

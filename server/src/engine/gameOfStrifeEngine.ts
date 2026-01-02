@@ -232,7 +232,8 @@ export class GameOfStrifeEngine implements GameEngine {
       version: updatedGoSState.version,
       nextTurn,
       // Include full engine state for storage in match
-      engineState: updatedGoSState
+      engineState: updatedGoSState,
+      wasRemoval: isRemoval // Indicate if this was a token removal
     }
   }
 
