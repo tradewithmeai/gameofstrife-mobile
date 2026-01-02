@@ -6,7 +6,7 @@ import { getLogs, clearLogs, getLogFileInfo, DEV_MODE } from '../../utils/devMod
 import Constants from 'expo-constants';
 
 export default function SettingsScreen() {
-  const { settings, setSettings, resetToDefaults, isLoading } = useSettingsStore();
+  const { settings, setSettings, resetToDefaults, isLoading, logSessions, loadLogSessions, clearLogSessions } = useSettingsStore();
 
   const [boardSize, setBoardSize] = useState(settings.boardSize);
   const [tokensPerPlayer, setTokensPerPlayer] = useState(settings.tokensPerPlayer);
@@ -16,56 +16,35 @@ export default function SettingsScreen() {
   const [enabledSuperpowers, setEnabledSuperpowers] = useState(settings.enabledSuperpowers);
   const [logFileInfo, setLogFileInfo] = useState<{ exists: boolean; sizeKB: string; sizeMB: string; path: string } | null>(null);
 
-  // Load log file info when component mounts
+  // Load log file info and sessions when component mounts
   useEffect(() => {
     if (DEV_MODE) {
       loadLogFileInfo();
+      loadLogSessions();
     }
-  }, []);
+  }, [loadLogSessions]);
 
   const loadLogFileInfo = async () => {
     const info = await getLogFileInfo();
     setLogFileInfo(info);
   };
 
-  const handleUploadLogs = async () => {
-    try {
-      const logs = await getLogs();
-
-      if (!logs || logs === 'No logs yet') {
-        Alert.alert('No Logs', 'No log data to upload yet. Play a game first.');
-        return;
-      }
-
-      // Get server URL from app config
-      const wsUrl = Constants.expoConfig?.extra?.wsUrl || 'https://gameofstrife-mobile-production.up.railway.app';
-      const serverUrl = wsUrl.replace(/^wss?:\/\//, 'https://');
-
-      const response = await fetch(`${serverUrl}/logs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ logs }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      Alert.alert(
-        'Logs Uploaded',
-        `Session ID: ${data.sessionId}\n\nGive this ID to Claude to analyze the logs.\n\nExpires: ${new Date(data.expiresAt).toLocaleString()}`,
-        [{ text: 'OK' }]
-      );
-
-      console.log('📤 Logs uploaded:', data);
-    } catch (error) {
-      console.error('Failed to upload logs:', error);
-      Alert.alert('Upload Failed', `Could not upload logs: ${error}`);
-    }
+  const handleClearSessions = () => {
+    Alert.alert(
+      'Clear Log Sessions?',
+      'This will clear the history of uploaded log sessions (logs remain on server until expiry).',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearLogSessions();
+            Alert.alert('Success', 'Log session history cleared');
+          }
+        }
+      ]
+    );
   };
 
   const superpowerTypes = [
@@ -270,43 +249,67 @@ export default function SettingsScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.sectionTitle}>
-                Debug Logs
+                Debug Logs (Auto-Upload)
               </Text>
               <Text variant="bodySmall" style={styles.helpText}>
-                All console output is automatically saved to file.
-                Upload logs to let Claude analyze them.
+                Logs are automatically uploaded when each game ends.
+                Share the session ID with Claude for analysis.
               </Text>
 
               {/* Log File Info */}
               {logFileInfo && (
                 <View style={styles.logInfo}>
                   <Text variant="bodySmall" style={styles.logInfoText}>
-                    Status: {logFileInfo.exists ? '✅ Active' : '❌ Not created yet'}
+                    Status: {logFileInfo.exists ? '✅ Logging active' : '❌ No logs yet'}
                   </Text>
                   {logFileInfo.exists && (
                     <Text variant="bodySmall" style={styles.logInfoText}>
-                      Size: {logFileInfo.sizeKB} ({logFileInfo.sizeMB})
+                      Size: {logFileInfo.sizeKB}
                     </Text>
                   )}
                 </View>
               )}
 
+              {/* Uploaded Sessions List */}
+              {logSessions.length > 0 ? (
+                <View style={styles.sessionsList}>
+                  <Text variant="bodyMedium" style={[styles.label, { marginBottom: 8 }]}>
+                    Uploaded Sessions (Last 20):
+                  </Text>
+                  {logSessions.map((session, index) => (
+                    <View key={session.sessionId} style={styles.sessionItem}>
+                      <Text variant="bodySmall" style={styles.sessionId}>
+                        {session.sessionId}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.sessionTime}>
+                        {new Date(session.timestamp).toLocaleString()}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text variant="bodySmall" style={styles.helpText}>
+                  No sessions uploaded yet. Play a game to auto-upload logs.
+                </Text>
+              )}
+
               <View style={styles.logButtons}>
                 <Button
-                  mode="contained"
-                  onPress={handleUploadLogs}
-                  icon="cloud-upload"
-                  style={styles.uploadButton}
+                  mode="outlined"
+                  onPress={handleClearSessions}
+                  icon="delete"
+                  style={styles.clearButton}
+                  disabled={logSessions.length === 0}
                 >
-                  Upload for Claude
+                  Clear History
                 </Button>
                 <Button
                   mode="outlined"
                   onPress={handleClearLogs}
-                  icon="delete"
+                  icon="file-remove"
                   style={styles.clearButton}
                 >
-                  Clear Logs
+                  Clear Log File
                 </Button>
               </View>
             </Card.Content>
@@ -416,10 +419,6 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 16,
   },
-  uploadButton: {
-    flex: 1,
-    backgroundColor: '#3B82F6',
-  },
   clearButton: {
     flex: 1,
     borderColor: '#EF4444',
@@ -429,12 +428,35 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginTop: 12,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   logInfoText: {
     color: '#D1D5DB',
     marginBottom: 4,
     fontFamily: 'monospace',
+  },
+  sessionsList: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  sessionItem: {
+    backgroundColor: '#374151',
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sessionId: {
+    color: '#3B82F6',
+    fontFamily: 'monospace',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  sessionTime: {
+    color: '#9CA3AF',
+    fontSize: 11,
   },
   marginTop: {
     marginTop: 16,

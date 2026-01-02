@@ -268,10 +268,48 @@ export const initLogging = async () => {
   }
 };
 
+/**
+ * Upload logs to server and return session ID
+ */
+export const uploadLogs = async (serverUrl: string, matchId?: string): Promise<{ sessionId: string; expiresAt: string } | null> => {
+  try {
+    const logs = await getLogs();
+
+    if (!logs || logs === 'No logs yet') {
+      console.log('[DevMode] No logs to upload');
+      return null;
+    }
+
+    const response = await fetch(`${serverUrl}/logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ logs }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('[DevMode] Logs uploaded:', data.sessionId);
+
+    return {
+      sessionId: data.sessionId,
+      expiresAt: data.expiresAt
+    };
+  } catch (error) {
+    console.error('[DevMode] Failed to upload logs:', error);
+    return null;
+  }
+};
+
 // Make functions available globally for debugging in console
 if (typeof global !== 'undefined') {
   (global as any).getLogs = getLogs;
   (global as any).clearLogs = clearLogs;
   (global as any).getLogFileInfo = getLogFileInfo;
   (global as any).shareLogs = shareLogs;
+  (global as any).uploadLogs = uploadLogs;
 }

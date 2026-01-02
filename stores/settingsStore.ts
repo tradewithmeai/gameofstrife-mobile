@@ -11,6 +11,13 @@ export interface GameSettings {
   superpowerPercentage: number
 }
 
+export interface LogSession {
+  sessionId: string
+  timestamp: string
+  expiresAt: string
+  matchId?: string
+}
+
 export const DEFAULT_GAME_SETTINGS: GameSettings = {
   boardSize: 10,
   tokensPerPlayer: 20,
@@ -21,6 +28,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
 }
 
 const SETTINGS_STORAGE_KEY = 'gameofstrife_settings'
+const LOG_SESSIONS_STORAGE_KEY = 'gameofstrife_log_sessions'
 
 // Load settings from AsyncStorage (async)
 const loadSettingsFromStorage = async (): Promise<GameSettings> => {
@@ -44,19 +52,46 @@ const saveSettingsToStorage = async (settings: GameSettings): Promise<void> => {
   }
 }
 
+// Load log sessions from AsyncStorage
+const loadLogSessionsFromStorage = async (): Promise<LogSession[]> => {
+  try {
+    const stored = await AsyncStorage.getItem(LOG_SESSIONS_STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored) as LogSession[]
+    }
+  } catch (error) {
+    console.error('[SettingsStore] Failed to load log sessions:', error)
+  }
+  return []
+}
+
+// Save log sessions to AsyncStorage
+const saveLogSessionsToStorage = async (sessions: LogSession[]): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(LOG_SESSIONS_STORAGE_KEY, JSON.stringify(sessions))
+  } catch (error) {
+    console.error('[SettingsStore] Failed to save log sessions:', error)
+  }
+}
+
 interface SettingsStore {
   settings: GameSettings
   hasConfigured: boolean // Whether user has configured settings at least once
   isLoading: boolean
+  logSessions: LogSession[]
   setSettings: (settings: GameSettings) => Promise<void>
   loadSettings: () => Promise<void>
   resetToDefaults: () => Promise<void>
+  addLogSession: (session: LogSession) => Promise<void>
+  loadLogSessions: () => Promise<void>
+  clearLogSessions: () => Promise<void>
 }
 
-export const useSettingsStore = create<SettingsStore>((set) => ({
+export const useSettingsStore = create<SettingsStore>((set, get) => ({
   settings: DEFAULT_GAME_SETTINGS,
   hasConfigured: false,
   isLoading: false,
+  logSessions: [],
 
   setSettings: async (settings: GameSettings) => {
     set({ isLoading: true })
@@ -82,5 +117,29 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     const defaults = DEFAULT_GAME_SETTINGS
     await saveSettingsToStorage(defaults)
     set({ settings: defaults, hasConfigured: true, isLoading: false })
+  },
+
+  addLogSession: async (session: LogSession) => {
+    const currentSessions = get().logSessions
+    // Add new session at the beginning (most recent first)
+    const updatedSessions = [session, ...currentSessions].slice(0, 20) // Keep only last 20
+    set({ logSessions: updatedSessions })
+    await saveLogSessionsToStorage(updatedSessions)
+    console.log('[SettingsStore] Added log session:', session.sessionId)
+  },
+
+  loadLogSessions: async () => {
+    try {
+      const sessions = await loadLogSessionsFromStorage()
+      set({ logSessions: sessions })
+    } catch (error) {
+      console.error('[SettingsStore] Error loading log sessions:', error)
+    }
+  },
+
+  clearLogSessions: async () => {
+    set({ logSessions: [] })
+    await saveLogSessionsToStorage([])
+    console.log('[SettingsStore] Cleared all log sessions')
   }
 }))

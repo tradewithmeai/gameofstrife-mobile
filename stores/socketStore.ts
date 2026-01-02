@@ -3,6 +3,8 @@ import { create } from 'zustand'
 import { io, Socket } from 'socket.io-client'
 import { AppState, AppStateStatus } from 'react-native'
 import Constants from 'expo-constants'
+import { uploadLogs, DEV_MODE } from '../utils/devMode'
+import { useSettingsStore } from './settingsStore'
 
 // Room types (matching server types)
 export type RoomStatus = 'waiting' | 'active' | 'finished'
@@ -663,6 +665,27 @@ const onResult = (data: { matchId: string; winner: 'P1' | 'P2' | 'draw' | null; 
 
   // Show winner/draw
   console.log(data.winner === 'draw' ? 'Draw!' : data.winner ? `Winner: ${data.winner}` : 'Game Over!', line ? `Winning line: ${line}` : '')
+
+  // Auto-upload logs when game ends (DEV mode only)
+  if (DEV_MODE) {
+    const wsUrl = Constants.expoConfig?.extra?.wsUrl || 'https://gameofstrife-mobile-production.up.railway.app'
+    const serverUrl = wsUrl.replace(/^wss?:\/\//, 'https://')
+
+    // Upload logs after a short delay to capture final game state
+    setTimeout(async () => {
+      const result = await uploadLogs(serverUrl, data.matchId)
+      if (result) {
+        // Add to settings store
+        useSettingsStore.getState().addLogSession({
+          sessionId: result.sessionId,
+          timestamp: new Date().toISOString(),
+          expiresAt: result.expiresAt,
+          matchId: data.matchId
+        })
+        console.log(`📤 Auto-uploaded logs. Session ID: ${result.sessionId}`)
+      }
+    }, 2000) // 2 second delay to ensure all logs are captured
+  }
 }
 
 const onGameResult = onResult // Legacy compatibility
