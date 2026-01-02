@@ -668,14 +668,18 @@ const onResult = (data: { matchId: string; winner: 'P1' | 'P2' | 'draw' | null; 
 
   // Auto-upload logs when game ends (DEV mode only)
   if (DEV_MODE) {
+    console.log('[SocketStore] DEV_MODE enabled, preparing log upload...')
     const wsUrl = Constants.expoConfig?.extra?.wsUrl || 'https://gameofstrife-mobile-production.up.railway.app'
     const serverUrl = wsUrl.replace(/^wss?:\/\//, 'https://')
+    console.log('[SocketStore] Server URL for logs:', serverUrl)
 
     // Upload logs after a short delay to capture final game state
     setTimeout(async () => {
+      console.log('[SocketStore] Attempting to upload logs for match:', data.matchId)
       const result = await uploadLogs(serverUrl, data.matchId)
       if (result) {
         // Add to settings store
+        console.log('[SocketStore] Upload successful, adding session to store:', result.sessionId)
         useSettingsStore.getState().addLogSession({
           sessionId: result.sessionId,
           timestamp: new Date().toISOString(),
@@ -683,8 +687,12 @@ const onResult = (data: { matchId: string; winner: 'P1' | 'P2' | 'draw' | null; 
           matchId: data.matchId
         })
         console.log(`📤 Auto-uploaded logs. Session ID: ${result.sessionId}`)
+      } else {
+        console.error('[SocketStore] Upload returned null - check logs for errors')
       }
     }, 2000) // 2 second delay to ensure all logs are captured
+  } else {
+    console.log('[SocketStore] DEV_MODE disabled, skipping log upload')
   }
 }
 
