@@ -209,8 +209,18 @@ export class GameOfStrifeEngine implements GameEngine {
 
           // Only switch turn if player has made a net placement of at least 1 token
           if (turnNetPlacements >= 1) {
-            nextTurn = seat === 'P1' ? 'P2' : 'P1'
-            newTurnNetPlacements = 0 // Reset for next player's turn
+            const proposedNextTurn = seat === 'P1' ? 'P2' : 'P1'
+            const nextPlayerTokensKey = proposedNextTurn === 'P1' ? 'player0' : 'player1'
+            const currentPlayerTokensKey = seat === 'P1' ? 'player0' : 'player1'
+
+            // Safety net: If next player has no tokens but current player does, keep turn
+            if (newPlayerTokens[nextPlayerTokensKey] === 0 && newPlayerTokens[currentPlayerTokensKey] > 0) {
+              nextTurn = seat // Keep turn with current player
+              newTurnNetPlacements = 0 // Reset for continued placement
+            } else {
+              nextTurn = proposedNextTurn
+              newTurnNetPlacements = 0 // Reset for next player's turn
+            }
           } else {
             // Keep turn with same player (they're still replacing deleted tokens)
             nextTurn = seat
