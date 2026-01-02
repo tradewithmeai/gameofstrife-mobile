@@ -84,7 +84,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     // Convert to flat board position for socket system
     const position = row * boardSize + col;
 
-    devLog('[GameBoard] Calling onGameAction with position:', position);
+    console.log(`[GameBoard] Token placement: row=${row}, col=${col}, boardSize=${boardSize}, position=${position} (${row}*${boardSize}+${col})`);
     onGameAction({
       type: 'PLACE_TOKEN',
       payload: { position, row, col },
@@ -189,7 +189,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        {isTablet ? '📱 Tablet' : '📱 Phone'} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {boardDimension.toFixed(0)}px | Cell: {cellSize.toFixed(1)}px
+        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {boardDimension.toFixed(0)}px | Cell: {cellSize.toFixed(1)}px
       </Text>
       <View
         ref={boardRef}
