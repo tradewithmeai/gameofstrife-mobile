@@ -1,6 +1,6 @@
 // Game of Strife GameBoard for React Native
-import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, GestureResponderEvent, Text } from 'react-native';
+import React, { useCallback, useState, useRef } from 'react';
+import { View, Pressable, StyleSheet, Dimensions, GestureResponderEvent, Text } from 'react-native';
 import { Cell, MEMORY_FLAGS, GameStage } from '../utils/gameTypes';
 import { devLog } from '../utils/devMode';
 
@@ -29,10 +29,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const boardRef = useRef<View>(null);
   const lastPlacedCell = useRef<string | null>(null);
-  const boardLayout = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
   // Log component render to verify code is loaded
-  devLog('[GameBoard] Component rendered - using pageXY for all devices');
+  devLog('[GameBoard] Component rendered - using Pressable with locationXY');
 
   // Get cell coordinates from touch position - using locationX/Y which is relative to the touched view
   const getCellFromPosition = useCallback((locationX: number, locationY: number, boardWidth: number, boardHeight: number): { row: number; col: number } | null => {
@@ -161,22 +160,20 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [boardSize]);
 
-  // Touch event handler using pageXY coordinates (works on all devices)
-  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    console.log('[GameBoard] Touch start:', { isPlacementStage, isMyTurn, isFinished });
+  // Handle press-in using Pressable's locationX/Y (always correct relative to view)
+  const handlePressIn = useCallback((e: GestureResponderEvent) => {
+    console.log('[GameBoard] Press in:', { isPlacementStage, isMyTurn, isFinished });
     if (!isPlacementStage || !isMyTurn) return;
 
     setIsDragging(true);
     lastPlacedCell.current = null;
 
     const touch = e.nativeEvent;
+    const x = touch.locationX;
+    const y = touch.locationY;
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      // Use pageXY method - works reliably on all devices
-      const x = touch.pageX - boardX;
-      const y = touch.pageY - boardY;
-
-      console.log('[GameBoard] Touch coords:', { pageX: touch.pageX, pageY: touch.pageY, boardX, boardY, x, y });
+      console.log('[GameBoard] Press coords:', { locationX: x, locationY: y });
 
       const cell = getCellFromPosition(x, y, width, height);
       console.log('[GameBoard] Calculated cell:', cell);
@@ -186,15 +183,15 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
 
-  const handleTouchMove = useCallback((e: GestureResponderEvent) => {
+  // Handle responder move for drag placement
+  const handleResponderMove = useCallback((e: GestureResponderEvent) => {
     if (!isDragging || !isPlacementStage || !isMyTurn) return;
 
     const touch = e.nativeEvent;
+    const x = touch.locationX;
+    const y = touch.locationY;
 
     boardRef.current?.measureInWindow((boardX, boardY, width, height) => {
-      const x = touch.pageX - boardX;
-      const y = touch.pageY - boardY;
-
       const cell = getCellFromPosition(x, y, width, height);
       if (cell) {
         handlePlacement(cell.row, cell.col);
@@ -202,7 +199,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, [isDragging, isPlacementStage, isMyTurn, getCellFromPosition, handlePlacement]);
 
-  const handleTouchEnd = useCallback(() => {
+  const handlePressOut = useCallback(() => {
     setIsDragging(false);
     lastPlacedCell.current = null;
   }, []);
@@ -263,9 +260,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Method: pageXY (universal)
+        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Method: locationXY (Pressable)
       </Text>
-      <View
+      <Pressable
         ref={boardRef}
         style={[
           styles.board,
@@ -275,9 +272,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
           }
         ]}
         onLayout={handleLayout}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onPressIn={handlePressIn}
+        onResponderMove={handleResponderMove}
+        onPressOut={handlePressOut}
       >
         {board.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
@@ -291,7 +288,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
             />
           ))
         )}
-      </View>
+      </Pressable>
     </View>
   );
 };
