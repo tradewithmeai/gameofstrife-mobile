@@ -104,7 +104,7 @@ fastify.post('/logs', async (request, reply) => {
       expiresAt: expiresAt.toISOString()
     }
   } catch (error) {
-    logger.error('Failed to store logs:', error)
+    logger.error('Failed to store logs:', { error: String(error) })
     return reply.code(500).send({ error: 'Failed to store logs' })
   }
 })
@@ -127,7 +127,7 @@ fastify.get('/logs/:sessionId', async (request, reply) => {
       expiresAt: logData.expiresAt.toISOString()
     }
   } catch (error) {
-    logger.error('Failed to retrieve logs:', error)
+    logger.error('Failed to retrieve logs:', { error: String(error) })
     return reply.code(500).send({ error: 'Failed to retrieve logs' })
   }
 })
