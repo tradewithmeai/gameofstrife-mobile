@@ -69,14 +69,14 @@ export default function LobbyScreen() {
   };
 
   const handleJoinRoom = () => {
-    if (joinCode.trim().length >= 4) {
+    if (joinCode.trim().length >= 3) {
       console.log('[LobbyScreen] Joining room with code:', joinCode);
       // If currently in a room, leave it first
       if (currentRoom) {
         console.log('[LobbyScreen] Leaving current room before joining new one');
         leaveRoom();
       }
-      joinRoom(joinCode.trim().toUpperCase());
+      joinRoom(joinCode.trim());
       setJoinCode('');
       setShowJoinInput(false);
       setCopiedCode(''); // Clear copied code after joining
@@ -218,7 +218,7 @@ export default function LobbyScreen() {
                 <Button
                   mode="contained"
                   onPress={handleJoinRoom}
-                  disabled={joinCode.trim().length < 4}
+                  disabled={joinCode.trim().length < 3}
                 >
                   Join
                 </Button>
