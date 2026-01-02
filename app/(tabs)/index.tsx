@@ -14,11 +14,13 @@ export default function LobbyScreen() {
     playerId,
     currentRoom,
     inMatch,
+    availableRooms,
     connect,
     disconnect,
     createRoom,
     joinRoom,
-    leaveRoom
+    leaveRoom,
+    getAllWaitingRooms
   } = useSocketStore();
 
   const { settings } = useSettingsStore();
@@ -45,6 +47,21 @@ export default function LobbyScreen() {
       router.push('/game');
     }
   }, [inMatch]);
+
+  // Fetch available rooms and set up periodic refresh
+  useEffect(() => {
+    if (isConnected) {
+      // Fetch immediately
+      getAllWaitingRooms();
+
+      // Set up 5-second refresh interval
+      const interval = setInterval(() => {
+        getAllWaitingRooms();
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isConnected]);
 
   const getStatusColor = () => {
     switch (connectionStatus) {
@@ -81,6 +98,17 @@ export default function LobbyScreen() {
       setShowJoinInput(false);
       setCopiedCode(''); // Clear copied code after joining
     }
+  };
+
+  const handleQuickJoin = (roomCode: string) => {
+    console.log('[LobbyScreen] Quick joining room:', roomCode);
+    // If currently in a room, leave it first
+    if (currentRoom) {
+      console.log('[LobbyScreen] Leaving current room before quick joining');
+      leaveRoom();
+    }
+    joinRoom(roomCode);
+    setCopiedCode(''); // Clear copied code after joining
   };
 
   // Auto-fill join code when showing join input and we have a copied code
@@ -165,18 +193,16 @@ export default function LobbyScreen() {
 
       {/* Lobby Actions */}
       <View style={styles.actions}>
-        {/* Create Room - only show when not in a room */}
-        {!currentRoom && (
-          <Button
-            mode="contained"
-            onPress={handleCreateRoom}
-            style={styles.button}
-            disabled={!isConnected}
-            icon="plus-circle"
-          >
-            Create Private Room
-          </Button>
-        )}
+        {/* Create Room - always visible, disabled when in match or not connected */}
+        <Button
+          mode="contained"
+          onPress={handleCreateRoom}
+          style={styles.button}
+          disabled={!isConnected || inMatch}
+          icon="plus-circle"
+        >
+          Create Private Room
+        </Button>
 
         {/* Join Room - always available */}
         {!showJoinInput ? (
@@ -227,6 +253,53 @@ export default function LobbyScreen() {
           </Card>
         )}
       </View>
+
+      {/* Available Rooms List */}
+      {availableRooms.length > 0 && !inMatch && (
+        <View style={styles.roomsListContainer}>
+          <Text variant="titleMedium" style={styles.roomsListTitle}>
+            Available Rooms
+          </Text>
+          {availableRooms.map((room: any) => {
+            const isOwnRoom = room.isOwnRoom || (room.players && room.players.some((p: any) => p.id === playerId));
+            const playerCount = room.players?.length || 0;
+
+            return (
+              <Card
+                key={room.id}
+                style={[
+                  styles.roomListCard,
+                  isOwnRoom && styles.ownRoomCard
+                ]}
+              >
+                <Card.Content>
+                  <View style={styles.roomListHeader}>
+                    <View>
+                      <Text variant="titleMedium" style={styles.textWhite}>
+                        Room {room.code}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.textGray}>
+                        Players: {playerCount}/{room.maxPlayers}
+                        {isOwnRoom && ' • Your Room'}
+                      </Text>
+                    </View>
+                    {!isOwnRoom && (
+                      <Button
+                        mode="contained"
+                        onPress={() => handleQuickJoin(room.code)}
+                        disabled={!isConnected || playerCount >= room.maxPlayers}
+                        compact
+                      >
+                        Join
+                      </Button>
+                    )}
+                  </View>
+                </Card.Content>
+              </Card>
+            );
+          })}
+        </View>
+      )}
 
       {/* Game Settings Info */}
       <Card style={styles.settingsInfoCard}>
@@ -356,5 +429,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 'auto',
     marginBottom: 32,
+  },
+  roomsListContainer: {
+    marginTop: 24,
+    gap: 12,
+  },
+  roomsListTitle: {
+    color: '#F3F4F6',
+    marginBottom: 8,
+    fontWeight: 'bold',
+  },
+  roomListCard: {
+    backgroundColor: '#1F2937',
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  ownRoomCard: {
+    borderColor: '#3B82F6',
+    borderWidth: 2,
+    backgroundColor: '#1E3A8A',
+  },
+  roomListHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });

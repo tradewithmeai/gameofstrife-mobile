@@ -46,6 +46,7 @@ export interface ServerToClientEvents {
   error: (message: string) => void
   quickMatchFound: (room: RoomUpdate['room']) => void
   publicRooms: (rooms: RoomUpdate['room'][]) => void
+  allWaitingRooms: (rooms: RoomUpdate['room'][]) => void
   welcome: (message: string) => void
   pong: () => void
   squareClaimed: (data: { matchId: string; move: any; matchState: any; version: number }) => void
@@ -59,6 +60,7 @@ export interface ClientToServerEvents {
   joinRoom: (code: string) => void
   leaveRoom: () => void
   getPublicRooms: () => void
+  getAllWaitingRooms: () => void
   playerReady: (ready: boolean) => void
   ping: () => void
   claimSquare: (data: { matchId: string; squareId: number; selectionId: string; superpowerType?: number }) => void

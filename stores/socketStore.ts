@@ -80,6 +80,7 @@ interface SocketState {
   currentRoom: Room | null
   inQueue: boolean
   publicRooms: Room[]
+  availableRooms: Room[] // User's own rooms + public rooms
   currentMatch: Match | null
   inMatch: boolean // True when player is actively in a match (not in lobby)
 
@@ -117,6 +118,7 @@ interface SocketState {
   joinRoom: (code: string) => void
   leaveRoom: () => void
   getPublicRooms: () => void
+  getAllWaitingRooms: () => void
   setPlayerReady: (ready: boolean) => void
   claimSquare: (squareId: number, superpowerType?: number) => void
   requestRematch: () => void
@@ -635,6 +637,11 @@ const onPublicRooms = (rooms: Room[]) => {
   storeInstance.setState({ publicRooms: rooms })
 }
 
+const onAllWaitingRooms = (rooms: Room[]) => {
+  console.log('All waiting rooms received:', rooms)
+  storeInstance.setState({ availableRooms: rooms })
+}
+
 const onError = (message: string) => {
   console.error('Server error:', message)
   // MOBILE: Use console instead of alert - UI should show errors via state
@@ -793,7 +800,7 @@ const SOCKET_EVENTS = [
   'connect', 'disconnect', 'connect_error', 'welcome', 'quickMatchFound',
   'roomUpdate', 'matchStart', 'squareClaimed', 'claimRejected', 'stateSync',
   'matchStateUpdate', 'result', 'gameResult', 'roomJoined', 'roomLeft',
-  'publicRooms', 'error', 'pong', 'rematchPending', 'rematchTimeout', 'windowOpen', 'windowClose', 'generationUpdate'
+  'publicRooms', 'allWaitingRooms', 'error', 'pong', 'rematchPending', 'rematchTimeout', 'windowOpen', 'windowClose', 'generationUpdate'
 ] as const
 
 // Event to handler mapping
@@ -814,6 +821,7 @@ const EVENT_HANDLERS = {
   'roomJoined': onRoomJoined,
   'roomLeft': onRoomLeft,
   'publicRooms': onPublicRooms,
+  'allWaitingRooms': onAllWaitingRooms,
   'error': onError,
   'pong': onPong,
   'rematchPending': onRematchPending,
@@ -863,6 +871,7 @@ export const useSocketStore = create<SocketState>((set, get) => {
   currentRoom: null,
   inQueue: false,
   publicRooms: [],
+  availableRooms: [],
   currentMatch: null,
   inMatch: false,
   matchState: null,
@@ -1026,6 +1035,14 @@ export const useSocketStore = create<SocketState>((set, get) => {
     if (socket && isConnected) {
       console.log('Getting public rooms')
       socket.emit('getPublicRooms')
+    }
+  },
+
+  getAllWaitingRooms: () => {
+    const { socket, isConnected } = get()
+    if (socket && isConnected) {
+      console.log('Getting all waiting rooms')
+      socket.emit('getAllWaitingRooms')
     }
   },
 

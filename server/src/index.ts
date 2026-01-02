@@ -172,6 +172,24 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     socket.emit('publicRooms', roomData)
   })
 
+  // Get all waiting rooms (user's own + public rooms)
+  socket.on('getAllWaitingRooms', () => {
+    const rooms = roomManager.getAllWaitingRooms(socket.id)
+    const roomData = rooms.map(r => ({
+      id: r.id,
+      code: r.code,
+      status: r.status,
+      players: r.players.map(p => ({ id: p.id, joinedAt: p.joinedAt, isReady: p.isReady })),
+      maxPlayers: r.maxPlayers,
+      createdAt: r.createdAt,
+      lastActivity: r.lastActivity,
+      isPublic: r.isPublic,
+      gameSettings: r.gameSettings,
+      isOwnRoom: r.players.some(p => p.id === socket.id)
+    }))
+    socket.emit('allWaitingRooms', roomData)
+  })
+
   // Leave room
   socket.on('leaveRoom', () => {
     const room = roomManager.leaveRoom(socket.id)

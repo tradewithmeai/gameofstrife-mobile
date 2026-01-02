@@ -205,6 +205,33 @@ export class RoomManager {
       .slice(0, limit)
   }
 
+  getAllWaitingRooms(userId: string, limit = 50): Room[] {
+    return Array.from(this.rooms.values())
+      .filter(room => {
+        // Include if room is waiting
+        if (room.status !== 'waiting') return false
+
+        // Include if user is in the room (own rooms)
+        const isOwnRoom = room.players.some(p => p.id === userId)
+
+        // Include if room is public
+        const isPublicRoom = room.isPublic
+
+        return isOwnRoom || isPublicRoom
+      })
+      .sort((a, b) => {
+        // Sort own rooms first, then by creation time
+        const aIsOwn = a.players.some(p => p.id === userId)
+        const bIsOwn = b.players.some(p => p.id === userId)
+
+        if (aIsOwn && !bIsOwn) return -1
+        if (!aIsOwn && bIsOwn) return 1
+
+        return b.createdAt.getTime() - a.createdAt.getTime()
+      })
+      .slice(0, limit)
+  }
+
   updatePlayerReady(playerId: string, ready: boolean): Room | null {
     const room = this.getRoomByPlayerId(playerId)
     if (!room) return null
