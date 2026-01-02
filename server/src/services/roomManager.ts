@@ -14,17 +14,13 @@ export class RoomManager {
   }
 
   generateRoomCode(): string {
-    // TESTING: Use fixed room code for easier testing
-    return 'TEST-123456'
-
-    // Production code (commented out):
-    // const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    // const prefix = 'ROOM-'
-    // let code = ''
-    // for (let i = 0; i < 6; i++) {
-    //   code += chars.charAt(Math.floor(Math.random() * chars.length))
-    // }
-    // return prefix + code
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    const prefix = 'ROOM-'
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return prefix + code
   }
 
   generateRoomId(): string {
@@ -33,19 +29,6 @@ export class RoomManager {
 
   createRoom(creatorId: string, creatorSocketId: string, isPublic = false, gameSettings?: any): Room {
     const roomCode = this.generateRoomCode()
-
-    // TESTING: Delete any existing room with the test code
-    if (roomCode === 'TEST-123456') {
-      const existingRoom = this.findRoomByCode(roomCode)
-      if (existingRoom) {
-        logger.debug('Deleting stale test room', { roomId: existingRoom.id })
-        // Remove all players from the old room
-        existingRoom.players.forEach(player => {
-          this.playerRooms.delete(player.id)
-        })
-        this.rooms.delete(existingRoom.id)
-      }
-    }
 
     const room: Room = {
       id: this.generateRoomId(),

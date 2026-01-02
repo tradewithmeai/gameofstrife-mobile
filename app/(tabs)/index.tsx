@@ -23,7 +23,7 @@ export default function LobbyScreen() {
 
   const { settings } = useSettingsStore();
 
-  const [joinCode, setJoinCode] = useState('TEST-123456'); // TESTING: Auto-fill test code
+  const [joinCode, setJoinCode] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [copiedCode, setCopiedCode] = useState('');
 
