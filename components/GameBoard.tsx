@@ -29,20 +29,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const boardRef = useRef<View>(null);
   const lastPlacedCell = useRef<string | null>(null);
 
-  // Log component render to verify code is loaded
-  devLog('[GameBoard] Component rendered - per-cell Pressable approach');
-
-  // Log a few cells to see what we're actually rendering
-  if (board && board.length > 0) {
-    console.log('[GameBoard] Board structure check:', {
-      boardLength: board.length,
-      firstRowLength: board[0]?.length,
-      is2D: Array.isArray(board[0]),
-      row0col19: board[0]?.[19] ? { player: board[0][19].player, alive: board[0][19].alive } : 'undefined',
-      row1col19: board[1]?.[19] ? { player: board[1][19].player, alive: board[1][19].alive } : 'undefined',
-      row2col19: board[2]?.[19] ? { player: board[2][19].player, alive: board[2][19].alive } : 'undefined'
-    });
-  }
+  // Component uses per-cell Pressable approach for touch handling
 
   // Handle token placement during drag
   const handlePlacement = useCallback((row: number, col: number) => {
@@ -149,14 +136,6 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       const superpowerStyle = getSuperpowerStyle(cell.superpowerType);
       if (superpowerStyle) {
         cellStyles.push(superpowerStyle);
-        // Log when we apply a superpower style
-        if (Math.random() < 0.1) { // Log 10% of the time to avoid spam
-          console.log('🎨 [GameBoard] Applying superpower style:', {
-            player: cell.player,
-            superpowerType: cell.superpowerType,
-            styleApplied: superpowerStyle
-          });
-        }
       }
     }
 
@@ -244,26 +223,51 @@ const styles = StyleSheet.create({
   cellVeteran: {
     opacity: 0.9,
   },
-  // Superpower visual effects (BRIGHT backgrounds for MAXIMUM visibility)
+  // Superpower visual effects - Distinctive borders and patterns
   superpowerTank: {
-    backgroundColor: '#FFFFFF', // Bright white
+    borderWidth: 3,
+    borderColor: '#FFFFFF', // Thick white border (defensive)
+    borderStyle: 'solid',
   },
   superpowerSpreader: {
-    backgroundColor: '#06B6D4', // Bright cyan
+    borderWidth: 2.5,
+    borderColor: '#06B6D4', // Cyan dotted border (spreading)
+    borderStyle: 'dotted',
   },
   superpowerSurvivor: {
-    backgroundColor: '#FBBF24', // Bright yellow
+    borderWidth: 3,
+    borderColor: '#FBBF24', // Bright yellow border (glowing)
+    borderStyle: 'solid',
+    shadowColor: '#FBBF24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 4, // Android shadow
   },
   superpowerGhost: {
-    backgroundColor: '#C084FC', // Bright purple
+    opacity: 0.7, // Semi-transparent (ethereal)
+    borderWidth: 2,
+    borderColor: '#C084FC', // Purple border
+    borderStyle: 'dashed',
   },
   superpowerReplicator: {
-    backgroundColor: '#F97316', // Bright orange
+    borderWidth: 2.5,
+    borderColor: '#F97316', // Orange dashed border (duplication pattern)
+    borderStyle: 'dashed',
   },
   superpowerDestroyer: {
-    backgroundColor: '#EF4444', // Bright red
+    borderWidth: 3.5,
+    borderColor: '#EF4444', // Thick red border (aggressive)
+    borderStyle: 'solid',
   },
   superpowerHybrid: {
-    backgroundColor: '#A855F7', // Bright purple
+    borderWidth: 3,
+    borderColor: '#A855F7', // Purple border with glow
+    borderStyle: 'solid',
+    shadowColor: '#A855F7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 3,
   },
 });
