@@ -162,12 +162,13 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   // Calculate board dimensions - move outside JSX so we can use in handlers
   const screenWidth = Dimensions.get('window').width;
   const boardDimension = React.useMemo(() => Math.min(screenWidth * 0.95, 500), [screenWidth]);
+  const cellSize = boardDimension / boardSize;
 
   return (
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Per-cell Pressable
+        Board: {boardDimension.toFixed(0)}px | Cells: {boardSize}x{boardSize} | Cell: {cellSize.toFixed(1)}px
       </Text>
       <View
         ref={boardRef}
@@ -188,7 +189,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
               style={[
                 ...getCellStyle(cell),
                 selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
-                { width: `${100 / boardSize}%`, height: `${100 / boardSize}%` }
+                { width: cellSize, height: cellSize }
               ]}
             />
           ))
