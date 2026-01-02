@@ -24,6 +24,7 @@ interface GameOfStrifeProps {
   isMyTurn?: boolean;
   onAction: (position: number, superpowerType?: number) => void;
   onRematch: () => void;
+  onReturnToLobby: () => void;
 }
 
 export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
@@ -31,7 +32,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   mySeat,
   isMyTurn,
   onAction,
-  onRematch
+  onRematch,
+  onReturnToLobby
 }) => {
   // Calculate isFinished from match state
   const isFinished = Boolean(matchState?.winner);
@@ -314,6 +316,11 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     onRematch();
   }, [onRematch]);
 
+  // Handle return to lobby
+  const handleReturnToLobby = useCallback(() => {
+    onReturnToLobby();
+  }, [onReturnToLobby]);
+
   if (!matchState) {
     return (
       <View style={styles.container}>
@@ -329,7 +336,10 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   const displayGeneration = isSimulating ? simulationGeneration : gameData.generation;
 
   return (
-    <ScrollView style={styles.scrollContainer}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.scrollContent}
+    >
       <View style={styles.container}>
         {/* Game HUD */}
         <GameOfStrifeHUD
@@ -461,6 +471,14 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
               </Card>
             )}
 
+            <Button
+              mode="outlined"
+              onPress={handleReturnToLobby}
+              style={styles.lobbyButton}
+            >
+              Return to Lobby
+            </Button>
+
             <Button mode="contained" onPress={handleRematch} style={styles.rematchButton}>
               Play Again
             </Button>
@@ -475,6 +493,10 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     backgroundColor: '#111827',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   container: {
     flex: 1,
@@ -519,6 +541,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E3A8A',
     borderColor: '#3B82F6',
     borderWidth: 2,
+  },
+  lobbyButton: {
+    borderColor: '#6B7280',
+    marginBottom: 12,
   },
   rematchButton: {
     backgroundColor: '#7C3AED',

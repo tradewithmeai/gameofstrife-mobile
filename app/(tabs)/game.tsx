@@ -43,6 +43,12 @@ export default function GameScreen() {
     router.push('/');
   };
 
+  // Handle return to lobby from results modal
+  const handleReturnToLobby = () => {
+    leaveRoom();
+    router.push('/');
+  };
+
   // Show game if in match, otherwise show waiting message
   if (inMatch && matchState) {
     return (
@@ -64,6 +70,7 @@ export default function GameScreen() {
           isMyTurn={isMyTurn}
           onAction={handleGameAction}
           onRematch={handleRematch}
+          onReturnToLobby={handleReturnToLobby}
         />
       </View>
     );
