@@ -198,6 +198,9 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const actualBoardInnerWidth = actualCellWidth * boardSize;
   const actualBoardWidth = actualBoardInnerWidth + (boardBorderWidth * 2);
 
+  // Log debug info to console for upload
+  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardCalc=${actualBoardWidth.toFixed(0)}px | CellSize=${cellSize}px | CellWithBorders=${actualCellWidth}px | MaxAvailable=${maxAvailableSpace}px | CellSizeWithBorder=${cellSizeWithBorder}px`);
+
   return (
     <View style={styles.container}>
       {/* Debug info */}
