@@ -188,38 +188,26 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const maxAvailableSpace = boardDimension - (boardBorderWidth * 2);
 
   // Calculate cell size accounting for borders
-  // boardSize * (cellSize + 1) <= maxAvailableSpace
-  // cellSize <= (maxAvailableSpace / boardSize) - 1
-  const cellSizeWithBorder = Math.floor(maxAvailableSpace / boardSize);
-  const cellSize = cellSizeWithBorder - (cellBorderWidth * 2); // Subtract border width from cell content
-
-  // Calculate actual board size based on cells (ensures perfect fit)
-  const actualCellWidth = cellSize + (cellBorderWidth * 2); // Cell content + borders
-  const actualBoardInnerWidth = actualCellWidth * boardSize;
-  // CRITICAL: Set board width to EXACTLY fit cells with no wrapping
-  // In React Native, borderWidth is INSIDE the width (border-box), so we need:
-  // width = (cells * cellWidth) + (border * 2) to have inner space = cells * cellWidth
-  const actualBoardWidth = actualBoardInnerWidth + (boardBorderWidth * 2);
+  // In React Native, width includes borders (border-box model)
+  // So each cell's total width = cellSize (including its 0.5px borders)
+  const cellSize = Math.floor(maxAvailableSpace / boardSize);
 
   // Log debug info to console for upload
-  const cellsPerRowCalculated = Math.floor(actualBoardInnerWidth / actualCellWidth);
-  const totalRowWidth = actualCellWidth * boardSize;
-  const fitsInContainer = totalRowWidth <= actualBoardInnerWidth;
-  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardCalc=${actualBoardWidth.toFixed(0)}px | CellSize=${cellSize}px | CellWithBorders=${actualCellWidth}px | MaxAvailable=${maxAvailableSpace}px | CellSizeWithBorder=${cellSizeWithBorder}px | TotalRowWidth=${totalRowWidth}px | FitsInContainer=${fitsInContainer} | CellsPerRow=${cellsPerRowCalculated}`);
+  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardDim=${boardDimension.toFixed(0)}px | CellSize=${cellSize}px | MaxAvailable=${maxAvailableSpace.toFixed(1)}px`);
 
   return (
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Calc: {actualBoardWidth.toFixed(0)}px | Cell: {cellSize}px
+        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {boardDimension.toFixed(0)}px | Cell: {cellSize}px
       </Text>
       <View
         ref={boardRef}
         style={[
           styles.board,
           {
-            width: actualBoardWidth,
-            height: actualBoardWidth,
+            width: boardDimension,
+            height: boardDimension,
           }
         ]}
       >
