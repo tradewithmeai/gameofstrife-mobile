@@ -1,0 +1,19 @@
+# Exclude server directory (backend code not needed for mobile build)
+server/
+
+# Exclude Claude Code settings
+.claude/
+
+# Exclude Play Store assets (not needed in the build)
+play-store-assets/
+
+# Exclude git directory
+.git/
+
+# Exclude documentation
+*.md
+!README.md
+
+# Exclude development files
+.vscode/
+.idea/
