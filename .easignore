@@ -1,3 +1,6 @@
+# Exclude Expo generated files (should be regenerated)
+.expo/
+
 # Exclude server directory (backend code not needed for mobile build)
 server/
 
@@ -17,3 +20,6 @@ play-store-assets/
 # Exclude development files
 .vscode/
 .idea/
+
+# Exclude node_modules (will be reinstalled)
+node_modules/
