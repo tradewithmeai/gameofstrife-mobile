@@ -99,6 +99,16 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     const board = metadata.fullBoard || getBoardFromFlat(matchState.board, boardSize);
     console.log('🎮 [GameOfStrife] Board source:', !!metadata.fullBoard ? 'USING FULLBOARD (has superpowers)' : 'USING FLAT BOARD (NO superpowers!)');
 
+    // Log all occupied cells in the reconstructed board
+    console.log('🗺️ [GameOfStrife] BOARD STRUCTURE after reconstruction:');
+    for (let r = 0; r < board.length; r++) {
+      for (let c = 0; c < board[r].length; c++) {
+        if (board[r][c].player !== null) {
+          console.log(`  Cell [${r}][${c}]: Player=${board[r][c].player === 0 ? 'P1' : 'P2'}, alive=${board[r][c].alive}`);
+        }
+      }
+    }
+
     // Debug: Log token positions
     const tokenPositions: Array<{pos: number, row: number, col: number, player: string}> = [];
     for (let i = 0; i < matchState.board.length; i++) {

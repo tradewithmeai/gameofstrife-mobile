@@ -218,18 +218,25 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         ]}
       >
         {board.map((row, rowIndex) =>
-          row.map((cell, colIndex) => (
-            <Pressable
-              key={`${rowIndex}-${colIndex}`}
-              onPress={() => handleCellPress(rowIndex, colIndex)}
-              disabled={!isPlacementStage || !isMyTurn}
-              style={[
-                ...getCellStyle(cell),
-                selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
-                { width: cellSize, height: cellSize }
-              ]}
-            />
-          ))
+          row.map((cell, colIndex) => {
+            // Log occupied cells with their visual positions
+            if (cell.player !== null) {
+              console.log(`📍 [GameBoard] RENDERING TOKEN: Visual position (${rowIndex},${colIndex}), Player=${cell.player === 0 ? 'P1' : 'P2'}, alive=${cell.alive}`);
+            }
+
+            return (
+              <Pressable
+                key={`${rowIndex}-${colIndex}`}
+                onPress={() => handleCellPress(rowIndex, colIndex)}
+                disabled={!isPlacementStage || !isMyTurn}
+                style={[
+                  ...getCellStyle(cell),
+                  selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
+                  { width: cellSize, height: cellSize }
+                ]}
+              />
+            );
+          })
         )}
       </View>
     </View>

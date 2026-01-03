@@ -640,6 +640,7 @@ export class GameOfStrifeEngine implements GameEngine {
         const cell = board[row][col]
         if (cell.player !== null) {
           flat.push(cell.player === 0 ? 'P1' : 'P2')
+          logger.debug(`🔄 [Flatten] board[${row}][${col}] → flat[${flat.length - 1}] = ${cell.player === 0 ? 'P1' : 'P2'}`)
         } else {
           flat.push(null)
         }
