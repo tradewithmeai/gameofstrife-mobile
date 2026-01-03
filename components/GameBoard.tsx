@@ -196,10 +196,16 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   // Calculate actual board size based on cells (ensures perfect fit)
   const actualCellWidth = cellSize + (cellBorderWidth * 2); // Cell content + borders
   const actualBoardInnerWidth = actualCellWidth * boardSize;
+  // CRITICAL: Set board width to EXACTLY fit cells with no wrapping
+  // In React Native, borderWidth is INSIDE the width (border-box), so we need:
+  // width = (cells * cellWidth) + (border * 2) to have inner space = cells * cellWidth
   const actualBoardWidth = actualBoardInnerWidth + (boardBorderWidth * 2);
 
   // Log debug info to console for upload
-  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardCalc=${actualBoardWidth.toFixed(0)}px | CellSize=${cellSize}px | CellWithBorders=${actualCellWidth}px | MaxAvailable=${maxAvailableSpace}px | CellSizeWithBorder=${cellSizeWithBorder}px`);
+  const cellsPerRowCalculated = Math.floor(actualBoardInnerWidth / actualCellWidth);
+  const totalRowWidth = actualCellWidth * boardSize;
+  const fitsInContainer = totalRowWidth <= actualBoardInnerWidth;
+  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardCalc=${actualBoardWidth.toFixed(0)}px | CellSize=${cellSize}px | CellWithBorders=${actualCellWidth}px | MaxAvailable=${maxAvailableSpace}px | CellSizeWithBorder=${cellSizeWithBorder}px | TotalRowWidth=${totalRowWidth}px | FitsInContainer=${fitsInContainer} | CellsPerRow=${cellsPerRowCalculated}`);
 
   return (
     <View style={styles.container}>
