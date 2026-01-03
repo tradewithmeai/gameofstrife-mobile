@@ -187,27 +187,41 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   // Total row width = boardSize * (cellSize + 2*borderWidth) must fit in maxAvailableSpace
   const maxAvailableSpace = boardDimension - (boardBorderWidth * 2);
 
-  // Calculate cell size accounting for borders
+  // Calculate cell size to exactly fill the board
   // In React Native, width includes borders (border-box model)
-  // So each cell's total width = cellSize (including its 0.5px borders)
-  const cellSize = Math.floor(maxAvailableSpace / boardSize);
+  // We need: cellSize * boardSize = maxAvailableSpace (as close as possible)
+  const exactCellSize = maxAvailableSpace / boardSize;
+  const cellSize = Math.floor(exactCellSize);
+
+  // Calculate how many pixels we're short
+  const totalCellsWidth = cellSize * boardSize;
+  const remainingPixels = maxAvailableSpace - totalCellsWidth;
+
+  // If we have significant remaining space (0.5px or more per cell on average),
+  // we can make cells 1px bigger to fill the gap
+  const shouldIncrementCellSize = remainingPixels >= boardSize * 0.5;
+  const finalCellSize = shouldIncrementCellSize ? cellSize + 1 : cellSize;
+
+  // Calculate actual space used
+  const actualCellsWidth = finalCellSize * boardSize;
+  const actualBoardWidth = actualCellsWidth + (boardBorderWidth * 2);
 
   // Log debug info to console for upload
-  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardDim=${boardDimension.toFixed(0)}px | CellSize=${cellSize}px | MaxAvailable=${maxAvailableSpace.toFixed(1)}px`);
+  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardDim=${boardDimension}px | CellSize=${finalCellSize}px | MaxAvailable=${maxAvailableSpace.toFixed(1)}px | ActualWidth=${actualBoardWidth}px | Gap=${boardDimension - actualBoardWidth}px`);
 
   return (
     <View style={styles.container}>
       {/* Debug info */}
       <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {boardDimension.toFixed(0)}px | Cell: {cellSize}px
+        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {actualBoardWidth.toFixed(0)}px | Cell: {finalCellSize}px
       </Text>
       <View
         ref={boardRef}
         style={[
           styles.board,
           {
-            width: boardDimension,
-            height: boardDimension,
+            width: actualBoardWidth,
+            height: actualBoardWidth,
           }
         ]}
       >
@@ -227,7 +241,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                   style={[
                     ...getCellStyle(cell),
                     selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
-                    { width: cellSize, height: cellSize }
+                    { width: finalCellSize, height: finalCellSize }
                   ]}
                 />
               );
