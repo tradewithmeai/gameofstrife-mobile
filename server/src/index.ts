@@ -300,7 +300,7 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     const room = roomManager.getRoomByPlayerId(socket.id)
 
     if (room) {
-      logger.room('close', room.code, socket.id)
+      logger.room('delete', room.code, socket.id)
 
       // Notify all players in the room that it's being closed
       gameNamespace.to(room.id).emit('roomClosed', {

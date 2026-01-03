@@ -43,6 +43,7 @@ export interface ServerToClientEvents {
   matchStart: (match: Match) => void
   roomJoined: (room: RoomUpdate['room']) => void
   roomLeft: () => void
+  roomClosed: (data: { message: string }) => void
   error: (message: string) => void
   quickMatchFound: (room: RoomUpdate['room']) => void
   publicRooms: (rooms: RoomUpdate['room'][]) => void
@@ -59,6 +60,7 @@ export interface ClientToServerEvents {
   createRoom: (data: { isPublic: boolean; settings?: any }) => void
   joinRoom: (code: string) => void
   leaveRoom: () => void
+  closeRoom: () => void
   getPublicRooms: () => void
   getAllWaitingRooms: () => void
   playerReady: (ready: boolean) => void
