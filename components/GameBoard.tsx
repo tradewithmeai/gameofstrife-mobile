@@ -183,15 +183,19 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const cellBorderWidth = 0.5; // Each cell has 0.5px border on all sides
 
   // Calculate cell size from max available dimension
-  // CRITICAL: Subtract cell borders BEFORE dividing to prevent wrapping
+  // Account for borders: each cell adds (cellSize + 2*borderWidth) to total width
+  // Total row width = boardSize * (cellSize + 2*borderWidth) must fit in maxAvailableSpace
   const maxAvailableSpace = boardDimension - (boardBorderWidth * 2);
-  const totalCellBorders = boardSize * (cellBorderWidth * 2); // Each cell: 0.5px × 2 sides
-  const availableForCellContent = maxAvailableSpace - totalCellBorders;
-  const cellSize = Math.floor(availableForCellContent / boardSize);
+
+  // Calculate cell size accounting for borders
+  // boardSize * (cellSize + 1) <= maxAvailableSpace
+  // cellSize <= (maxAvailableSpace / boardSize) - 1
+  const cellSizeWithBorder = Math.floor(maxAvailableSpace / boardSize);
+  const cellSize = cellSizeWithBorder - (cellBorderWidth * 2); // Subtract border width from cell content
 
   // Calculate actual board size based on cells (ensures perfect fit)
-  const actualCellWidth = cellSize; // Cell content only, borders are in addition
-  const actualBoardInnerWidth = (actualCellWidth * boardSize) + (boardSize * cellBorderWidth * 2);
+  const actualCellWidth = cellSize + (cellBorderWidth * 2); // Cell content + borders
+  const actualBoardInnerWidth = actualCellWidth * boardSize;
   const actualBoardWidth = actualBoardInnerWidth + (boardBorderWidth * 2);
 
   return (

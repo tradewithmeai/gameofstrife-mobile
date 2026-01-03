@@ -16,7 +16,9 @@ import {
   DEFAULT_CONWAY_RULES
 } from '../utils/gameTypes';
 import { useSocketStore } from '../stores/socketStore';
-import { devLog, summarize } from '../utils/devMode';
+import { useSettingsStore } from '../stores/settingsStore';
+import { devLog, summarize, uploadLogs, DEV_MODE } from '../utils/devMode';
+import Constants from 'expo-constants';
 
 interface GameOfStrifeProps {
   matchState: any;
@@ -358,6 +360,35 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     onReturnToLobby();
   }, [onReturnToLobby]);
 
+  // Handle log upload
+  const handleUploadLogs = useCallback(async () => {
+    if (!DEV_MODE) {
+      console.log('[GameOfStrife] Log upload only available in DEV mode');
+      return;
+    }
+
+    const wsUrl = Constants.expoConfig?.extra?.wsUrl || 'https://gameofstrife-mobile-production.up.railway.app';
+    const serverUrl = wsUrl.replace(/^wss?:\/\//, 'https://');
+
+    console.log('[GameOfStrife] Uploading logs to:', serverUrl);
+    const result = await uploadLogs(serverUrl, matchState?.id);
+
+    if (result) {
+      // Add to settings store
+      useSettingsStore.getState().addLogSession({
+        sessionId: result.sessionId,
+        timestamp: new Date().toISOString(),
+        expiresAt: result.expiresAt,
+        matchId: matchState?.id || 'unknown'
+      });
+      console.log(`📤 Logs uploaded. Session ID: ${result.sessionId}`);
+      alert(`Logs uploaded!\nSession ID: ${result.sessionId}`);
+    } else {
+      console.error('[GameOfStrife] Upload failed');
+      alert('Log upload failed - check console for details');
+    }
+  }, [matchState]);
+
   if (!matchState) {
     return (
       <View style={styles.container}>
@@ -421,6 +452,18 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           </Card>
         )}
 
+        {/* Dev Mode - Upload Logs Button */}
+        {DEV_MODE && (
+          <Button
+            mode="outlined"
+            onPress={handleUploadLogs}
+            style={styles.uploadButton}
+            compact
+          >
+            📤 Upload Logs
+          </Button>
+        )}
+
         {/* Conway's Game of Life Rules Info */}
         {gameData.stage === 'placement' && (
           <Card style={styles.rulesCard}>
@@ -453,74 +496,72 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           </Card>
         )}
 
-        {/* Simulation Results Modal */}
-        <Portal>
-          <Modal
-            visible={simulationComplete && !!finalScores && !!matchState?.winner}
-            onDismiss={() => {}}
-            contentContainerStyle={styles.modal}
-          >
-            <Text variant="displaySmall" style={styles.centerText}>🏆</Text>
-            <Text variant="headlineLarge" style={[styles.textWhite, styles.centerText, styles.marginBottom]}>
-              Simulation Complete!
-            </Text>
-            <Text variant="headlineMedium" style={[styles.centerText, styles.marginBottom]}>
-              {matchState?.winner === 'draw' ? (
-                <Text style={styles.textYellow}>It's a Draw!</Text>
-              ) : matchState?.winner === mySeat ? (
-                <Text style={styles.textGreen}>You Win!</Text>
-              ) : (
-                <Text style={styles.textRed}>You Lose</Text>
+        {/* Simulation Results Card - positioned at bottom to not cover board */}
+        {simulationComplete && !!finalScores && !!matchState?.winner && (
+          <Card style={styles.resultsCard}>
+            <Card.Content>
+              <Text variant="displaySmall" style={styles.centerText}>🏆</Text>
+              <Text variant="headlineMedium" style={[styles.textWhite, styles.centerText, styles.marginBottom]}>
+                Simulation Complete!
+              </Text>
+              <Text variant="titleLarge" style={[styles.centerText, styles.marginBottom]}>
+                {matchState?.winner === 'draw' ? (
+                  <Text style={styles.textYellow}>It's a Draw!</Text>
+                ) : matchState?.winner === mySeat ? (
+                  <Text style={styles.textGreen}>You Win!</Text>
+                ) : (
+                  <Text style={styles.textRed}>You Lose</Text>
+                )}
+              </Text>
+
+              {finalScores && (
+                <View style={styles.scoresContainer}>
+                  <View style={styles.scoreRow}>
+                    <Text variant="titleSmall" style={styles.textBlue}>Player 1 (Blue):</Text>
+                    <Text variant="titleSmall" style={styles.textWhite}>{finalScores.player0} cells</Text>
+                  </View>
+                  <View style={styles.scoreRow}>
+                    <Text variant="titleSmall" style={styles.textGreen}>Player 2 (Green):</Text>
+                    <Text variant="titleSmall" style={styles.textWhite}>{finalScores.player1} cells</Text>
+                  </View>
+                </View>
               )}
-            </Text>
 
-            {finalScores && (
-              <View style={styles.scoresContainer}>
-                <View style={styles.scoreRow}>
-                  <Text variant="titleMedium" style={styles.textBlue}>Player 1 (Blue):</Text>
-                  <Text variant="titleMedium" style={styles.textWhite}>{finalScores.player0} cells</Text>
-                </View>
-                <View style={styles.scoreRow}>
-                  <Text variant="titleMedium" style={styles.textGreen}>Player 2 (Green):</Text>
-                  <Text variant="titleMedium" style={styles.textWhite}>{finalScores.player1} cells</Text>
-                </View>
-              </View>
-            )}
+              <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
+                Simulation ran for {simulationGeneration} generations
+              </Text>
 
-            <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
-              Simulation ran for {simulationGeneration} generations
-            </Text>
-
-            {/* Rematch Status Indicator */}
-            {rematchPending && rematchRequesterSeat && (
-              <Card style={[styles.rematchCard, styles.marginBottom]}>
-                <Card.Content>
+              {/* Rematch Status Indicator */}
+              {rematchPending && rematchRequesterSeat && (
+                <View style={styles.marginBottom}>
                   {rematchRequesterSeat === mySeat ? (
-                    <Text variant="bodySmall" style={styles.textBlue}>
+                    <Text variant="bodySmall" style={[styles.textBlue, styles.centerText]}>
                       ⏳ Waiting for opponent to accept rematch...
                     </Text>
                   ) : (
-                    <Text variant="bodySmall" style={styles.textGreen}>
+                    <Text variant="bodySmall" style={[styles.textGreen, styles.centerText]}>
                       🎮 Opponent wants a rematch! Click Play Again to accept
                     </Text>
                   )}
-                </Card.Content>
-              </Card>
-            )}
+                </View>
+              )}
 
-            <Button
-              mode="outlined"
-              onPress={handleReturnToLobby}
-              style={styles.lobbyButton}
-            >
-              Return to Lobby
-            </Button>
+              <View style={styles.buttonRow}>
+                <Button
+                  mode="outlined"
+                  onPress={handleReturnToLobby}
+                  style={styles.flexButton}
+                >
+                  Return to Lobby
+                </Button>
 
-            <Button mode="contained" onPress={handleRematch} style={styles.rematchButton}>
-              Play Again
-            </Button>
-          </Modal>
-        </Portal>
+                <Button mode="contained" onPress={handleRematch} style={styles.flexButton}>
+                  Play Again
+                </Button>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
       </View>
     </ScrollView>
   );
@@ -578,6 +619,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E3A8A',
     borderColor: '#3B82F6',
     borderWidth: 2,
+  },
+  uploadButton: {
+    borderColor: '#3B82F6',
+    marginVertical: 8,
+  },
+  resultsCard: {
+    backgroundColor: '#1F2937',
+    borderColor: '#7C3AED',
+    borderWidth: 3,
+    marginTop: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  flexButton: {
+    flex: 1,
   },
   lobbyButton: {
     borderColor: '#6B7280',
