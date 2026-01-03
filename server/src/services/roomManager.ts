@@ -270,6 +270,22 @@ export class RoomManager {
     this.quickMatchQueue = this.quickMatchQueue.filter(() => true)
   }
 
+  removeRoom(roomId: string): boolean {
+    const room = this.rooms.get(roomId)
+    if (!room) return false
+
+    // Remove all player mappings
+    room.players.forEach(player => {
+      this.playerRooms.delete(player.id)
+    })
+
+    // Remove the room
+    this.rooms.delete(roomId)
+    logger.debug('Removed room', { roomId, code: room.code })
+
+    return true
+  }
+
   createRoomUpdate(room: Room, type: RoomUpdate['type']): RoomUpdate {
     return {
       room: {

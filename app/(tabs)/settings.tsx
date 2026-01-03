@@ -1,11 +1,13 @@
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Text, Card, Button, TextInput, Chip } from 'react-native-paper';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { useSettingsStore, DEFAULT_GAME_SETTINGS } from '../../stores/settingsStore';
 import { getLogs, clearLogs, getLogFileInfo, DEV_MODE } from '../../utils/devMode';
 import Constants from 'expo-constants';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { settings, setSettings, resetToDefaults, isLoading, logSessions, loadLogSessions, clearLogSessions } = useSettingsStore();
 
   const [boardSize, setBoardSize] = useState(settings.boardSize);
@@ -75,6 +77,8 @@ export default function SettingsScreen() {
       enabledSuperpowers,
     };
     await setSettings(newSettings);
+    // Navigate back to lobby after saving
+    router.push('/');
   };
 
   const handleReset = async () => {

@@ -14,7 +14,9 @@
       "Bash(git tag:*)",
       "Bash(npm run build:production:*)",
       "Bash(railway:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(python3 -c \"import sys, json; data = json.load\\(sys.stdin\\); print\\(data[''logs'']\\)\")",
+      "Bash(cat:*)"
     ]
   }
 }

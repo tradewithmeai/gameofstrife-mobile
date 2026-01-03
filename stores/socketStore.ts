@@ -119,6 +119,7 @@ interface SocketState {
   createRoom: (isPublic?: boolean, settings?: any) => void
   joinRoom: (code: string) => void
   leaveRoom: () => void
+  closeRoom: () => void
   getPublicRooms: () => void
   getAllWaitingRooms: () => void
   setPlayerReady: (ready: boolean) => void
@@ -719,6 +720,33 @@ const onRoomLeft = () => {
   })
 }
 
+const onRoomClosed = (data: { message: string }) => {
+  console.log('Room closed:', data.message)
+
+  // Show alert to notify the user
+  const { Alert } = require('react-native')
+  Alert.alert(
+    'Game Closed',
+    data.message || 'The game has been closed by the other player.',
+    [{ text: 'OK' }]
+  )
+
+  // Clear state and return to lobby
+  storeInstance.setState({
+    currentRoom: null,
+    inQueue: false,
+    inMatch: false,
+    matchState: null,
+    currentMatch: null,
+    mySeat: null,
+    gameInputLocked: false,
+    isFinished: false,
+    pendingClaims: new Map(),
+    rematchPending: false,
+    rematchRequesterSeat: null,
+  })
+}
+
 const onPublicRooms = (rooms: Room[]) => {
   console.log('Public rooms received:', rooms)
   storeInstance.setState({ publicRooms: rooms })
@@ -886,7 +914,7 @@ const onGenerationUpdate = (data: { matchId: string; generation: number; board: 
 const SOCKET_EVENTS = [
   'connect', 'disconnect', 'connect_error', 'welcome', 'quickMatchFound',
   'roomUpdate', 'matchStart', 'squareClaimed', 'claimRejected', 'stateSync',
-  'matchStateUpdate', 'result', 'gameResult', 'roomJoined', 'roomLeft',
+  'matchStateUpdate', 'result', 'gameResult', 'roomJoined', 'roomLeft', 'roomClosed',
   'publicRooms', 'allWaitingRooms', 'error', 'pong', 'rematchPending', 'rematchTimeout', 'windowOpen', 'windowClose', 'generationUpdate'
 ] as const
 
@@ -907,6 +935,7 @@ const EVENT_HANDLERS = {
   'gameResult': onGameResult,
   'roomJoined': onRoomJoined,
   'roomLeft': onRoomLeft,
+  'roomClosed': onRoomClosed,
   'publicRooms': onPublicRooms,
   'allWaitingRooms': onAllWaitingRooms,
   'error': onError,
@@ -1114,6 +1143,14 @@ export const useSocketStore = create<SocketState>((set, get) => {
     if (socket && isConnected) {
       console.log('Leaving room')
       socket.emit('leaveRoom')
+    }
+  },
+
+  closeRoom: () => {
+    const { socket, isConnected } = get()
+    if (socket && isConnected) {
+      console.log('Closing room')
+      socket.emit('closeRoom')
     }
   },
 

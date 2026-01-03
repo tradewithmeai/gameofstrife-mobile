@@ -295,6 +295,34 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
     socket.emit('roomLeft')
   })
 
+  // Close room (remove entire room from lobby)
+  socket.on('closeRoom', () => {
+    const room = roomManager.getRoomByPlayerId(socket.id)
+
+    if (room) {
+      logger.room('close', room.code, socket.id)
+
+      // Notify all players in the room that it's being closed
+      gameNamespace.to(room.id).emit('roomClosed', {
+        message: 'The game has been closed by the host.'
+      })
+
+      // Get all socket IDs in the room
+      const playerIds = room.players.map(p => p.id)
+
+      // Make all players leave the socket.io room channel
+      playerIds.forEach(playerId => {
+        const playerSocket = gameNamespace.sockets.get(playerId)
+        if (playerSocket) {
+          playerSocket.leave(room.id)
+        }
+      })
+
+      // Remove the room entirely
+      roomManager.removeRoom(room.id)
+    }
+  })
+
   // Claim square
   socket.on('claimSquare', async ({ matchId, squareId, selectionId, superpowerType }) => {
     const result = await matchService.claimSquare({

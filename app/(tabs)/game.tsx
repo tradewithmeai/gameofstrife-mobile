@@ -13,7 +13,8 @@ export default function GameScreen() {
     isConnected,
     claimSquare,
     requestRematch,
-    leaveRoom
+    leaveRoom,
+    closeRoom
   } = useSocketStore();
 
   // Get isMyTurn from matchState
@@ -43,6 +44,12 @@ export default function GameScreen() {
     router.push('/');
   };
 
+  // Handle close game
+  const handleCloseGame = () => {
+    closeRoom();
+    router.push('/');
+  };
+
   // Handle return to lobby from results modal
   const handleReturnToLobby = () => {
     leaveRoom();
@@ -56,9 +63,18 @@ export default function GameScreen() {
         <View style={styles.leaveButtonContainer}>
           <Button
             mode="text"
+            onPress={handleCloseGame}
+            icon="close-circle"
+            textColor="#EF4444"
+            compact
+          >
+            Close Game
+          </Button>
+          <Button
+            mode="text"
             onPress={handleLeaveGame}
             icon="arrow-left"
-            textColor="#EF4444"
+            textColor="#9CA3AF"
             compact
           >
             Leave Game
@@ -104,6 +120,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#111827',
   },
   leaveButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingHorizontal: 8,
     paddingTop: 8,
     backgroundColor: '#111827',
