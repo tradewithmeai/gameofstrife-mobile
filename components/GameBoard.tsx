@@ -223,27 +223,29 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
           }
         ]}
       >
-        {board.map((row, rowIndex) =>
-          row.map((cell, colIndex) => {
-            // Log occupied cells with their visual positions
-            if (cell.player !== null) {
-              console.log(`📍 [GameBoard] RENDERING TOKEN: Visual position (${rowIndex},${colIndex}), Player=${cell.player === 0 ? 'P1' : 'P2'}, alive=${cell.alive}`);
-            }
+        {board.map((row, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.row}>
+            {row.map((cell, colIndex) => {
+              // Log occupied cells with their visual positions
+              if (cell.player !== null) {
+                console.log(`📍 [GameBoard] RENDERING TOKEN: Visual position (${rowIndex},${colIndex}), Player=${cell.player === 0 ? 'P1' : 'P2'}, alive=${cell.alive}`);
+              }
 
-            return (
-              <Pressable
-                key={`${rowIndex}-${colIndex}`}
-                onPress={() => handleCellPress(rowIndex, colIndex)}
-                disabled={!isPlacementStage || !isMyTurn}
-                style={[
-                  ...getCellStyle(cell),
-                  selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
-                  { width: cellSize, height: cellSize }
-                ]}
-              />
-            );
-          })
-        )}
+              return (
+                <Pressable
+                  key={`${rowIndex}-${colIndex}`}
+                  onPress={() => handleCellPress(rowIndex, colIndex)}
+                  disabled={!isPlacementStage || !isMyTurn}
+                  style={[
+                    ...getCellStyle(cell),
+                    selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
+                    { width: cellSize, height: cellSize }
+                  ]}
+                />
+              );
+            })}
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -257,11 +259,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   board: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: 'column',
     borderWidth: 2,
     borderColor: '#6B7280',
     backgroundColor: '#1F2937',
+  },
+  row: {
+    flexDirection: 'row',
   },
   cell: {
     borderWidth: 0.5,
