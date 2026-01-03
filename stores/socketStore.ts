@@ -385,10 +385,9 @@ const onSquareClaimed = (data: { matchId: string; squareId: number; by: string; 
       const row = Math.floor(data.squareId / boardSize);
       const col = data.squareId % boardSize;
       const cell = data.metadata.fullBoard[row]?.[col];
-      console.log('🔍 [SquareClaimed] Server sent cell:', {
-        squareId: data.squareId,
-        row, col,
-        cell: cell ? { player: cell.player, alive: cell.alive, superpowerType: cell.superpowerType } : 'undefined'
+      console.log(`🟣 [Client] RECEIVED FROM SERVER: squareId=${data.squareId}, metadata.boardSize=${data.metadata.boardSize}, calculated row=${row}, col=${col}`, {
+        cell: cell ? { player: cell.player, alive: cell.alive, superpowerType: cell.superpowerType } : 'undefined',
+        flatBoardLength: data.board.length
       });
     }
 

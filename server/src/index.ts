@@ -338,23 +338,20 @@ gameNamespace.on('connection', (socket: Socket<ClientToServerEvents, ServerToCli
         const row = Math.floor(squareId / boardSize)
         const col = squareId % boardSize
         const placedCell = (result.matchState.engineState as any).board[row]?.[col]
-        logger.debug('🔧 [Server] Broadcasting squareClaimed', {
+        logger.info(`🟡 [Server] BROADCASTING TO CLIENTS: squareId=${squareId}, boardSize=${boardSize}, row=${row}, col=${col}, flatBoardLength=${result.matchState.board.length}`, {
           matchId,
-          squareId,
-          boardSize,
-          row,
-          col,
-          flatBoardLength: result.matchState.board.length,
           cell: placedCell ? {
             player: placedCell.player,
             alive: placedCell.alive,
             superpowerType: placedCell.superpowerType,
             memory: placedCell.memory
           } : 'undefined',
-          superpowerTypeReceived: superpowerType
+          superpowerTypeReceived: superpowerType,
+          metadataBoardSize: fullBoardData.metadata?.boardSize
         })
       }
 
+      logger.info(`🟡 [Server] EMITTING squareClaimed with squareId=${squareId}, metadata.boardSize=${fullBoardData.metadata?.boardSize}, flat board length=${fullBoardData.board.length}`)
       gameNamespace.to(roomId).emit('squareClaimed', fullBoardData)
 
       // Check for game end

@@ -218,6 +218,8 @@ export class GameOfStrifeEngine implements GameEngine {
 
     const { row, col } = indexToPosition(squareId, boardSize)
 
+    logger.info(`🟢 [GameEngine] PROCESSING CLAIM: squareId=${squareId}, boardSize=${boardSize}, calculated row=${row}, col=${col}, playerIndex=${playerIndex}`)
+
     // Check if this is a removal (player clicking their own token)
     const isRemoval = newBoard[row][col].player === playerIndex;
 

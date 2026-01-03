@@ -286,7 +286,7 @@ export class MatchService {
     const col = squareId % boardSize
     const seat = match.playerSeats.get(playerId)
 
-    logger.debug(`Claim attempt`, { matchId, playerId, seat, squareId, row, col, boardSize, selectionId })
+    logger.info(`🔴 [MatchService] RECEIVED FROM CLIENT: squareId=${squareId}, boardSize=${boardSize}, calculated row=${row}, col=${col} (${Math.floor(squareId / boardSize)}*${boardSize}+${squareId % boardSize})`, { matchId, playerId, seat, selectionId })
 
     const mutex = this.matchMutexes.get(matchId)
     if (!mutex) {

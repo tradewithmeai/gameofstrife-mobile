@@ -84,7 +84,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     // Convert to flat board position for socket system
     const position = row * boardSize + col;
 
-    console.log(`[GameBoard] Token placement: row=${row}, col=${col}, boardSize=${boardSize}, position=${position} (${row}*${boardSize}+${col})`);
+    console.log(`🔵 [GameBoard] SENDING TO SERVER: row=${row}, col=${col}, boardSize=${boardSize}, position=${position} (calculation: ${row}*${boardSize}+${col}=${position})`);
     onGameAction({
       type: 'PLACE_TOKEN',
       payload: { position, row, col },
@@ -183,8 +183,11 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const cellBorderWidth = 0.5; // Each cell has 0.5px border on all sides
 
   // Calculate cell size from max available dimension
+  // CRITICAL: Subtract cell borders BEFORE dividing to prevent wrapping
   const maxAvailableSpace = boardDimension - (boardBorderWidth * 2);
-  const cellSize = Math.floor(maxAvailableSpace / boardSize);
+  const totalCellBorders = boardSize * (cellBorderWidth * 2); // Each cell: 0.5px × 2 sides
+  const availableForCellContent = maxAvailableSpace - totalCellBorders;
+  const cellSize = Math.floor(availableForCellContent / boardSize);
 
   // Calculate actual board size based on cells (ensures perfect fit)
   const actualCellWidth = cellSize; // Cell content only, borders are in addition
