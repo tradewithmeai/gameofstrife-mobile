@@ -7,7 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "strife",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -20,7 +22,9 @@
     "android": {
       "package": "com.gameofstrife.mobile",
       "versionCode": 1,
-      "permissions": ["INTERNET"],
+      "permissions": [
+        "INTERNET"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1f2937"
@@ -43,7 +47,11 @@
       ]
     ],
     "extra": {
-      "wsUrl": "https://gameofstrife-mobile-production.up.railway.app"
+      "wsUrl": "https://gameofstrife-mobile-production.up.railway.app",
+      "router": {},
+      "eas": {
+        "projectId": "f4baa55d-e7bb-4939-9e36-aef518df6d1a"
+      }
     }
   }
 }
