@@ -16,7 +16,10 @@
       "Bash(railway:*)",
       "Bash(git restore:*)",
       "Bash(python3 -c \"import sys, json; data = json.load\\(sys.stdin\\); print\\(data[''logs'']\\)\")",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(identify:*)",
+      "Bash(git remote:*)"
     ]
   }
 }

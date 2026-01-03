@@ -99,7 +99,7 @@ You have the right to:
 
 We may update this privacy policy from time to time. Changes will be posted:
 - In-app update notices (if material changes)
-- Updated version on our repository: https://github.com/[your-username]/gameofstrife-mobile
+- Updated version on our repository: https://github.com/tradewithmeai/gameofstrife-mobile
 
 ## 10. International Users
 
@@ -109,9 +109,9 @@ The App is available worldwide. Our server is hosted by Railway, which operates 
 
 For questions about this privacy policy or the App:
 
-**Developer:** [Your Name/Company Name]
-**Email:** [your-email@example.com]
-**GitHub:** https://github.com/[your-username]/gameofstrife-mobile
+**Developer:** Richard Watson
+**Email:** dev.solvx@gmail.com
+**GitHub:** https://github.com/tradewithmeai/gameofstrife-mobile
 
 ## 12. Legal Basis (GDPR)
 
@@ -138,4 +138,4 @@ Game of Strife is privacy-first by design. Enjoy strategic gameplay without priv
 - ✅ Open source (code available for review)
 - ✅ Works offline (except multiplayer mode)
 
-**Questions?** Contact us at [your-email@example.com]
+**Questions?** Contact us at dev.solvx@gmail.com
