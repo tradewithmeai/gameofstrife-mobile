@@ -83,8 +83,8 @@ fastify.post('/logs', async (request, reply) => {
       return reply.code(400).send({ error: 'Invalid logs data' })
     }
 
-    // Generate session ID (6 random chars)
-    const sessionId = Math.random().toString(36).substring(2, 8).toUpperCase()
+    // Generate session ID (6-digit number: 100000-999999)
+    const sessionId = (Math.floor(Math.random() * 900000) + 100000).toString()
 
     // Store logs with 24 hour expiration
     const now = new Date()
