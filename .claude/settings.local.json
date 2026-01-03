@@ -12,7 +12,9 @@
       "Bash(npm install:*)",
       "WebSearch",
       "Bash(git tag:*)",
-      "Bash(npm run build:production:*)"
+      "Bash(npm run build:production:*)",
+      "Bash(railway:*)",
+      "Bash(git restore:*)"
     ]
   }
 }

@@ -9,9 +9,9 @@ export const DEV_MODE = __DEV__; // Expo's built-in dev flag
 // Log file path
 const LOG_FILE_PATH = `${FileSystem.documentDirectory}game-debug.log`;
 
-// In-memory log buffer (last 100 lines)
+// In-memory log buffer (last 500 lines for full game capture)
 let logBuffer: string[] = [];
-const MAX_BUFFER_SIZE = 100;
+const MAX_BUFFER_SIZE = 500;
 const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB max
 
 // Store original console methods
@@ -270,13 +270,15 @@ export const initLogging = async () => {
 
 /**
  * Upload logs to server and return session ID
+ * Uses in-memory buffer for immediate capture instead of file reads
  */
 export const uploadLogs = async (serverUrl: string, matchId?: string): Promise<{ sessionId: string; expiresAt: string } | null> => {
   try {
-    const logs = await getLogs();
+    // Use in-memory buffer for immediate logs (not async file reads)
+    const logs = getRecentLogs();
 
-    if (!logs || logs === 'No logs yet') {
-      console.log('[DevMode] No logs to upload');
+    if (!logs || logs.trim().length === 0) {
+      console.log('[DevMode] No logs to upload (buffer empty)');
       return null;
     }
 
