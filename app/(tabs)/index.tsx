@@ -20,7 +20,8 @@ export default function LobbyScreen() {
     createRoom,
     joinRoom,
     leaveRoom,
-    getAllWaitingRooms
+    getAllWaitingRooms,
+    startPracticeMode
   } = useSocketStore();
 
   const { settings } = useSettingsStore();
@@ -202,6 +203,17 @@ export default function LobbyScreen() {
           icon="plus-circle"
         >
           Create Room
+        </Button>
+
+        {/* Practice Mode - 1-player practice session */}
+        <Button
+          mode="contained"
+          onPress={() => startPracticeMode(settings)}
+          style={[styles.button, styles.practiceButton]}
+          disabled={!isConnected || inMatch || !!currentRoom}
+          icon="account"
+        >
+          Practice Mode
         </Button>
 
         {/* Join Room - always available */}
@@ -398,6 +410,9 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: 8,
+  },
+  practiceButton: {
+    backgroundColor: '#3B82F6', // Blue color to distinguish from create room
   },
   joinCard: {
     backgroundColor: '#1F2937',

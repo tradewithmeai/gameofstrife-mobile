@@ -1,7 +1,7 @@
 // Main Game of Strife component for React Native
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button, Card, Portal, Modal } from 'react-native-paper';
+import { Text, Button, Card, Portal, Modal, Chip } from 'react-native-paper';
 import { GameOfStrifeBoard } from './GameBoard';
 import { GameOfStrifeHUD } from './GameHUD';
 import {
@@ -47,7 +47,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     pendingClaims,
     pendingSimulClaims,
     rematchPending,
-    rematchRequesterSeat
+    rematchRequesterSeat,
+    isPracticeMode
   } = useSocketStore();
 
   // Simulation state
@@ -436,6 +437,13 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           settings={gameData.settings}
         />
 
+        {/* Practice Mode Indicator */}
+        {isPracticeMode && (
+          <Chip icon="account" style={styles.practiceChip} textStyle={styles.practiceChipText}>
+            Practice Mode
+          </Chip>
+        )}
+
         {/* Game Board */}
         <GameOfStrifeBoard
           board={displayBoard}
@@ -463,6 +471,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
         )}
 
         {/* Dev Mode - Upload Logs Button */}
+        {/* Temporarily disabled for screenshots
         {DEV_MODE && (
           <Button
             mode="outlined"
@@ -473,6 +482,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
             📤 Upload Logs
           </Button>
         )}
+        */}
 
         {/* Conway's Game of Life Rules Info */}
         {gameData.stage === 'placement' && (
@@ -507,34 +517,49 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
         )}
 
         {/* Simulation Results Card - positioned at bottom to not cover board */}
-        {simulationComplete && !!finalScores && !!matchState?.winner && (
+        {simulationComplete && !!finalScores && (isPracticeMode || !!matchState?.winner) && (
           <Card style={styles.resultsCard}>
             <Card.Content>
-              <Text variant="displaySmall" style={styles.centerText}>🏆</Text>
+              <Text variant="displaySmall" style={styles.centerText}>
+                {isPracticeMode ? '🧬' : '🏆'}
+              </Text>
               <Text variant="headlineMedium" style={[styles.textWhite, styles.centerText, styles.marginBottom]}>
                 Simulation Complete!
               </Text>
-              <Text variant="titleLarge" style={[styles.centerText, styles.marginBottom]}>
-                {matchState?.winner === 'draw' ? (
-                  <Text style={styles.textYellow}>It's a Draw!</Text>
-                ) : matchState?.winner === mySeat ? (
-                  <Text style={styles.textGreen}>You Win!</Text>
-                ) : (
-                  <Text style={styles.textRed}>You Lose</Text>
-                )}
-              </Text>
 
-              {finalScores && (
+              {isPracticeMode ? (
+                // PRACTICE MODE: Show only P1 cell count
                 <View style={styles.scoresContainer}>
-                  <View style={styles.scoreRow}>
-                    <Text variant="titleSmall" style={styles.textBlue}>Player 1 (Blue):</Text>
-                    <Text variant="titleSmall" style={styles.textWhite}>{finalScores.player0} cells</Text>
-                  </View>
-                  <View style={styles.scoreRow}>
-                    <Text variant="titleSmall" style={styles.textGreen}>Player 2 (Green):</Text>
-                    <Text variant="titleSmall" style={styles.textWhite}>{finalScores.player1} cells</Text>
-                  </View>
+                  <Text variant="titleLarge" style={[styles.textBlue, styles.centerText]}>
+                    Final Cells: {finalScores.player0}
+                  </Text>
                 </View>
+              ) : (
+                // MULTIPLAYER: Show winner and both scores
+                <>
+                  <Text variant="titleLarge" style={[styles.centerText, styles.marginBottom]}>
+                    {matchState?.winner === 'draw' ? (
+                      <Text style={styles.textYellow}>It's a Draw!</Text>
+                    ) : matchState?.winner === mySeat ? (
+                      <Text style={styles.textGreen}>You Win!</Text>
+                    ) : (
+                      <Text style={styles.textRed}>You Lose</Text>
+                    )}
+                  </Text>
+
+                  {finalScores && (
+                    <View style={styles.scoresContainer}>
+                      <View style={styles.scoreRow}>
+                        <Text variant="titleSmall" style={styles.textBlue}>Player 1 (Blue):</Text>
+                        <Text variant="titleSmall" style={styles.textWhite}>{finalScores.player0} cells</Text>
+                      </View>
+                      <View style={styles.scoreRow}>
+                        <Text variant="titleSmall" style={styles.textGreen}>Player 2 (Green):</Text>
+                        <Text variant="titleSmall" style={styles.textWhite}>{finalScores.player1} cells</Text>
+                      </View>
+                    </View>
+                  )}
+                </>
               )}
 
               <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
@@ -684,5 +709,14 @@ const styles = StyleSheet.create({
   },
   textPurpleLight: {
     color: '#DDD6FE',
+  },
+  practiceChip: {
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+    backgroundColor: '#3B82F6',
+  },
+  practiceChipText: {
+    color: '#FFFFFF',
   },
 });

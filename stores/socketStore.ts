@@ -4,7 +4,8 @@ import { io, Socket } from 'socket.io-client'
 import { AppState, AppStateStatus } from 'react-native'
 import Constants from 'expo-constants'
 import { uploadLogs, DEV_MODE } from '../utils/devMode'
-import { useSettingsStore } from './settingsStore'
+import { useSettingsStore, GameSettings } from './settingsStore'
+import { createEmptyBoard } from '../utils/gameTypes'
 
 // Room types (matching server types)
 export type RoomStatus = 'waiting' | 'active' | 'finished'
@@ -94,6 +95,9 @@ interface SocketState {
   gameInputLocked: boolean
   isFinished: boolean // UI-level finished state
 
+  // Practice mode state
+  isPracticeMode: boolean // Flag for 1-player practice mode
+
   // Rematch state
   rematchPending: boolean
   rematchRequesterSeat: 'P1' | 'P2' | null
@@ -126,6 +130,7 @@ interface SocketState {
   claimSquare: (squareId: number, superpowerType?: number) => void
   requestRematch: () => void
   acceptRematch: () => void
+  startPracticeMode: (settings: any) => void
 }
 
 // MOBILE: Get WebSocket URL from Expo config
@@ -974,6 +979,27 @@ const attachAllHandlers = (socket: Socket) => {
   }))
 }
 
+// Practice mode helper: Generate superpower manifest for player tokens
+function generateSuperpowerManifest(
+  tokenCount: number,
+  settings: GameSettings
+): number[] {
+  const manifest: number[] = []
+  const { superpowerPercentage, enabledSuperpowers } = settings
+
+  for (let i = 0; i < tokenCount; i++) {
+    const roll = Math.random() * 100
+    if (roll < superpowerPercentage && enabledSuperpowers.length > 0) {
+      const randomIndex = Math.floor(Math.random() * enabledSuperpowers.length)
+      manifest.push(enabledSuperpowers[randomIndex])
+    } else {
+      manifest.push(0) // Normal cell
+    }
+  }
+
+  return manifest
+}
+
 export const useSocketStore = create<SocketState>((set, get) => {
   // Store reference for handlers
   storeInstance = { getState: get, setState: set }
@@ -996,6 +1022,7 @@ export const useSocketStore = create<SocketState>((set, get) => {
   mySeat: null,
   gameInputLocked: false,
   isFinished: false,
+  isPracticeMode: false,
   rematchPending: false,
   rematchRequesterSeat: null,
   matchFinishedNotice: null,
@@ -1139,7 +1166,23 @@ export const useSocketStore = create<SocketState>((set, get) => {
   },
 
   leaveRoom: () => {
-    const { socket, isConnected } = get()
+    const { socket, isConnected, isPracticeMode } = get()
+
+    if (isPracticeMode) {
+      // PRACTICE: Clear local state only
+      console.log('[Practice] Leaving practice mode')
+      set({
+        isPracticeMode: false,
+        inMatch: false,
+        matchState: null,
+        mySeat: null,
+        gameInputLocked: false,
+        isFinished: false
+      })
+      return
+    }
+
+    // MULTIPLAYER: Emit to server
     if (socket && isConnected) {
       console.log('Leaving room')
       socket.emit('leaveRoom')
@@ -1147,7 +1190,23 @@ export const useSocketStore = create<SocketState>((set, get) => {
   },
 
   closeRoom: () => {
-    const { socket, isConnected } = get()
+    const { socket, isConnected, isPracticeMode } = get()
+
+    if (isPracticeMode) {
+      // PRACTICE: Clear local state only (same as leaveRoom)
+      console.log('[Practice] Closing practice mode')
+      set({
+        isPracticeMode: false,
+        inMatch: false,
+        matchState: null,
+        mySeat: null,
+        gameInputLocked: false,
+        isFinished: false
+      })
+      return
+    }
+
+    // MULTIPLAYER: Emit to server
     if (socket && isConnected) {
       console.log('Closing room')
       socket.emit('closeRoom')
@@ -1179,7 +1238,7 @@ export const useSocketStore = create<SocketState>((set, get) => {
   },
 
   claimSquare: (squareId: number, superpowerType?: number) => {
-    const { socket, isConnected, matchState, playerId, isFinished, mySeat, matchMode, pendingSimulClaims } = get()
+    const { socket, isConnected, matchState, playerId, isFinished, mySeat, matchMode, pendingSimulClaims, isPracticeMode } = get()
 
     // No-op guards per requirements
     if (isFinished) {
@@ -1189,6 +1248,64 @@ export const useSocketStore = create<SocketState>((set, get) => {
 
     if (!matchState) {
       console.log('claimSquare no-op: no match state')
+      return
+    }
+
+    // PRACTICE MODE: Handle locally without server
+    if (isPracticeMode) {
+      // Validate: square must be empty
+      if (matchState.board[squareId] !== null) {
+        console.log('[Practice] Square occupied')
+        return
+      }
+
+      // Update flat board
+      const newBoard = [...matchState.board]
+      newBoard[squareId] = 'P1'
+
+      // Update metadata
+      const metadata = { ...matchState.metadata }
+      metadata.playerTokens.player0 -= 1
+      metadata.placementCounts.player0 += 1
+
+      // Update 2D fullBoard with Cell data
+      const row = Math.floor(squareId / metadata.boardSize)
+      const col = squareId % metadata.boardSize
+
+      // Determine superpower type for this placement
+      const placementIndex = metadata.placementCounts.player0 - 1 // Just incremented, so subtract 1
+      const manifestSuperpower = metadata.player0Superpowers?.[placementIndex] || 0
+      const finalSuperpowerType = superpowerType !== undefined ? superpowerType : manifestSuperpower
+
+      metadata.fullBoard[row][col] = {
+        player: 0, // P1 = player 0
+        alive: true,
+        superpowerType: finalSuperpowerType,
+        memory: 0
+      }
+
+      console.log('[Practice] Placed token at', { squareId, row, col, superpowerType: finalSuperpowerType, tokensLeft: metadata.playerTokens.player0 })
+
+      // Check if all tokens placed
+      const allTokensPlaced = metadata.playerTokens.player0 === 0
+
+      if (allTokensPlaced) {
+        // Transition to simulation
+        metadata.stage = 'simulation'
+        console.log('[Practice] All tokens placed, starting simulation')
+      }
+
+      // Update state
+      set({
+        matchState: {
+          ...matchState,
+          board: newBoard,
+          version: matchState.version + 1,
+          currentTurn: allTokensPlaced ? null : 'P1',
+          metadata
+        }
+      })
+
       return
     }
 
@@ -1245,7 +1362,17 @@ export const useSocketStore = create<SocketState>((set, get) => {
   },
 
   requestRematch: () => {
-    const { socket, isConnected, matchState } = get()
+    const { socket, isConnected, matchState, isPracticeMode } = get()
+
+    if (isPracticeMode) {
+      // PRACTICE: Restart with same settings
+      console.log('[Practice] Restarting practice mode')
+      const settings = useSettingsStore.getState().settings
+      get().startPracticeMode(settings)
+      return
+    }
+
+    // MULTIPLAYER: Emit to server
     if (socket && isConnected && matchState && matchState.status === 'finished') {
       console.log('Requesting rematch for match:', matchState.id)
       socket.emit('rematch', { matchId: matchState.id })
@@ -1263,6 +1390,66 @@ export const useSocketStore = create<SocketState>((set, get) => {
         evt: 'frontend.rematch.accepted'
       }))
     }
+  },
+
+  // Practice mode: Start 1-player practice session
+  startPracticeMode: (settings: GameSettings) => {
+    const boardSize = settings.boardSize
+    const tokensPerPlayer = settings.tokensPerPlayer
+    const flatBoard = Array(boardSize * boardSize).fill(null)
+
+    // Generate superpower manifest for P1 only
+    const player0Superpowers = generateSuperpowerManifest(
+      tokensPerPlayer,
+      settings
+    )
+
+    const practiceMatchState: MatchState = {
+      id: `practice_${Date.now()}`,
+      roomId: 'practice',
+      board: flatBoard,
+      players: ['practice_p1'], // Only P1
+      currentTurn: 'P1', // Always P1
+      moves: [],
+      version: 0,
+      status: 'active',
+      winner: null,
+      winningLine: null,
+      startedAt: new Date(),
+      gameType: 'gameofstrife',
+      metadata: {
+        stage: 'placement',
+        boardSize,
+        playerTokens: {
+          player0: tokensPerPlayer,
+          player1: 0 // P2 has zero tokens
+        },
+        placementCounts: { player0: 0, player1: 0 },
+        fullBoard: createEmptyBoard(boardSize),
+        player0Superpowers,
+        player1Superpowers: [], // Empty for P2
+        conwayRules: {
+          birthRules: settings.birthRules,
+          survivalRules: settings.survivalRules
+        },
+        settings
+      }
+    }
+
+    console.log('[Practice] Starting practice mode with settings:', {
+      boardSize,
+      tokensPerPlayer,
+      superpowersGenerated: player0Superpowers.filter(s => s > 0).length
+    })
+
+    set({
+      isPracticeMode: true,
+      inMatch: true,
+      matchState: practiceMatchState,
+      mySeat: 'P1', // User is P1
+      gameInputLocked: false,
+      isFinished: false
+    })
   },
 
   // Legacy ping
