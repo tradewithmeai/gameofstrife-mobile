@@ -1,7 +1,10 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSocketStore } from '../../stores/socketStore';
 
 export default function TabLayout() {
+  const inMatch = useSocketStore(state => state.inMatch);
+
   return (
     <Tabs
       screenOptions={{
@@ -24,6 +27,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="home" size={size} color={color} />
           ),
+          // Disable lobby tab during match
+          href: inMatch ? null : '/index',
         }}
       />
       <Tabs.Screen
@@ -42,6 +47,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="cog" size={size} color={color} />
           ),
+          // Disable settings tab during match
+          href: inMatch ? null : '/settings',
         }}
       />
     </Tabs>
