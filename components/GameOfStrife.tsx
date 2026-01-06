@@ -223,7 +223,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       let currentBoard = placementBoardRef.current.map(row => row.map(cell => ({ ...cell })));
       let generation = 0;
       const maxGenerations = 100;
-      const simulationSpeed = 200; // ms per generation
+      const simulationSpeed = 50; // ms per generation (fast animation)
 
       const runNextGeneration = () => {
         console.log(`[GameOfStrife] Running generation ${generation + 1}`);
@@ -265,7 +265,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       };
 
       // Start the simulation after a brief delay
-      console.log('[GameOfStrife] Scheduling first generation in 500ms');
+      console.log('[GameOfStrife] Scheduling first generation in 100ms');
       simulationTimerRef.current = setTimeout(() => {
         console.log('[GameOfStrife] First timeout fired!');
         try {
@@ -273,7 +273,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
         } catch (error) {
           console.error('[GameOfStrife] Error in runNextGeneration:', error);
         }
-      }, 500);
+      }, 100);
     }
 
     // Cleanup on unmount
