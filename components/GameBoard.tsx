@@ -19,6 +19,7 @@ interface GameOfStrifeBoardProps {
 
 export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   board,
+  stage,
   boardSize,
   isPlacementStage,
   isMyTurn,
@@ -221,16 +222,29 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         {board.map((row, rowIndex) => (
           <View key={`row-${rowIndex}`} style={styles.row}>
             {row.map((cell, colIndex) => {
+              const cellStyle = [
+                ...getCellStyle(cell),
+                selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
+                { width: finalCellSize, height: finalCellSize }
+              ];
+
+              // During simulation/finished: use plain View (no touch overhead)
+              // During placement: use Pressable (touchable)
+              if (stage === 'simulation' || stage === 'finished') {
+                return (
+                  <View
+                    key={`${rowIndex}-${colIndex}`}
+                    style={cellStyle}
+                  />
+                );
+              }
+
               return (
                 <Pressable
                   key={`${rowIndex}-${colIndex}`}
                   onPress={() => handleCellPress(rowIndex, colIndex)}
                   disabled={!isPlacementStage || !isMyTurn}
-                  style={[
-                    ...getCellStyle(cell),
-                    selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
-                    { width: finalCellSize, height: finalCellSize }
-                  ]}
+                  style={cellStyle}
                 />
               );
             })}
