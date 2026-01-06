@@ -30,11 +30,8 @@ export default function LobbyScreen() {
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [copiedCode, setCopiedCode] = useState('');
 
-  // Connect to server on mount
+  // Cleanup on unmount
   useEffect(() => {
-    console.log('[LobbyScreen] Connecting to server...');
-    connect();
-
     return () => {
       console.log('[LobbyScreen] Disconnecting from server...');
       disconnect();
@@ -75,6 +72,11 @@ export default function LobbyScreen() {
 
   const handleCreateRoom = () => {
     console.log('[LobbyScreen] Creating room with settings:', settings);
+    // Lazy connect: only connect when needed
+    if (!isConnected) {
+      console.log('[LobbyScreen] Connecting to server for multiplayer...');
+      connect();
+    }
     createRoom(true, settings);
   };
 
@@ -89,6 +91,11 @@ export default function LobbyScreen() {
   const handleJoinRoom = () => {
     if (joinCode.trim().length >= 3) {
       console.log('[LobbyScreen] Joining room with code:', joinCode);
+      // Lazy connect: only connect when needed
+      if (!isConnected) {
+        console.log('[LobbyScreen] Connecting to server for multiplayer...');
+        connect();
+      }
       // If currently in a room, leave it first
       if (currentRoom) {
         console.log('[LobbyScreen] Leaving current room before joining new one');
@@ -103,6 +110,11 @@ export default function LobbyScreen() {
 
   const handleQuickJoin = (roomCode: string) => {
     console.log('[LobbyScreen] Quick joining room:', roomCode);
+    // Lazy connect: only connect when needed
+    if (!isConnected) {
+      console.log('[LobbyScreen] Connecting to server for multiplayer...');
+      connect();
+    }
     // If currently in a room, leave it first
     if (currentRoom) {
       console.log('[LobbyScreen] Leaving current room before quick joining');
