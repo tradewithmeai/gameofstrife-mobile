@@ -206,15 +206,8 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const actualCellsWidth = finalCellSize * boardSize;
   const actualBoardWidth = actualCellsWidth + (boardBorderWidth * 2);
 
-  // Log debug info to console for upload
-  console.log(`🎨 [GameBoard] RENDER: ${isTablet ? '📱Tablet' : '📱Phone'} | BoardSize=${boardSize}x${boardSize} | Screen=${width.toFixed(0)}x${height.toFixed(0)} | BoardDim=${boardDimension}px | CellSize=${finalCellSize}px | MaxAvailable=${maxAvailableSpace.toFixed(1)}px | ActualWidth=${actualBoardWidth}px | Gap=${boardDimension - actualBoardWidth}px`);
-
   return (
     <View style={styles.container}>
-      {/* Debug info */}
-      <Text style={{ color: '#FFF', fontSize: 10, marginBottom: 4 }}>
-        {isTablet ? '📱 Tablet' : '📱 Phone'} | BoardSize: {boardSize}x{boardSize} | Screen: {width.toFixed(0)}x{height.toFixed(0)} | Board: {actualBoardWidth.toFixed(0)}px | Cell: {finalCellSize}px
-      </Text>
       <View
         ref={boardRef}
         style={[
@@ -228,11 +221,6 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         {board.map((row, rowIndex) => (
           <View key={`row-${rowIndex}`} style={styles.row}>
             {row.map((cell, colIndex) => {
-              // Log occupied cells with their visual positions
-              if (cell.player !== null) {
-                console.log(`📍 [GameBoard] RENDERING TOKEN: Visual position (${rowIndex},${colIndex}), Player=${cell.player === 0 ? 'P1' : 'P2'}, alive=${cell.alive}`);
-              }
-
               return (
                 <Pressable
                   key={`${rowIndex}-${colIndex}`}

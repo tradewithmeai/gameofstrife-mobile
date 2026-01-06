@@ -97,92 +97,27 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     }
 
     const boardSize = metadata.boardSize || Math.sqrt(matchState.board.length);
-    console.log('🎮 [GameOfStrife] Board reconstruction - size:', boardSize, 'flat length:', matchState.board.length);
 
     // Use fullBoard from metadata if available (preserves superpowerType and memory)
     // Otherwise fall back to converting from flat board
     const board = metadata.fullBoard || getBoardFromFlat(matchState.board, boardSize);
-    console.log('🎮 [GameOfStrife] Board source:', !!metadata.fullBoard ? 'USING FULLBOARD (has superpowers)' : 'USING FLAT BOARD (NO superpowers!)');
-
-    // Log all occupied cells in the reconstructed board
-    console.log('🗺️ [GameOfStrife] BOARD STRUCTURE after reconstruction:');
-    for (let r = 0; r < board.length; r++) {
-      for (let c = 0; c < board[r].length; c++) {
-        if (board[r][c].player !== null) {
-          console.log(`  Cell [${r}][${c}]: Player=${board[r][c].player === 0 ? 'P1' : 'P2'}, alive=${board[r][c].alive}`);
-        }
-      }
-    }
-
-    // Debug: Log token positions
-    const tokenPositions: Array<{pos: number, row: number, col: number, player: string}> = [];
-    for (let i = 0; i < matchState.board.length; i++) {
-      if (matchState.board[i] !== null) {
-        const row = Math.floor(i / boardSize);
-        const col = i % boardSize;
-        tokenPositions.push({pos: i, row, col, player: matchState.board[i] as string});
-      }
-    }
-    console.log('🎮 [GameOfStrife] Token positions on board:', tokenPositions);
-    console.log('🎮 [GameOfStrife] Seat:', mySeat, '| BoardSize:', boardSize, '| Expected cells:', boardSize * boardSize);
-
-    // Check if any cells have superpowers
-    if (board && board.length > 0) {
-      let superpowerCount = 0;
-      for (let row of board) {
-        for (let cell of row) {
-          if (cell.superpowerType > 0) superpowerCount++;
-        }
-      }
-      console.log('🎮 [GameOfStrife] Cells with superpowers on board:', superpowerCount);
-
-      // Sample a few cells to debug
-      if (superpowerCount > 0) {
-        console.log('🎮 [GameOfStrife] Sample superpower cells:',
-          board.flat().filter(c => c.superpowerType > 0).slice(0, 3).map(c => ({
-            player: c.player,
-            superpowerType: c.superpowerType,
-            alive: c.alive
-          }))
-        );
-      }
-    }
 
     // Extract Conway rules from metadata (set by backend from game settings)
     const conwayRules = metadata.conwayRules || DEFAULT_CONWAY_RULES;
-    console.log('[GameOfStrife] Using Conway rules:', conwayRules);
 
     // Extract game settings from metadata (for superpower configuration)
     const settings = metadata.settings || null;
-    console.log('[GameOfStrife] Using game settings:', settings);
-
-    // DEBUG: Log superpower manifests
-    if (metadata.player0Superpowers || metadata.player1Superpowers) {
-      const p0Count = metadata.player0Superpowers?.filter((s: number) => s > 0).length || 0;
-      const p1Count = metadata.player1Superpowers?.filter((s: number) => s > 0).length || 0;
-      console.log('🎮 SUPERPOWER MANIFESTS LOADED:', {
-        P1_Superpowers: p0Count,
-        P2_Superpowers: p1Count,
-        P1_Manifest: metadata.player0Superpowers,
-        P2_Manifest: metadata.player1Superpowers
-      });
-    } else {
-      console.warn('⚠️ NO SUPERPOWER MANIFESTS IN METADATA!');
-    }
 
     // Determine game stage - prefer metadata.stage if available
     let stage: GameStage = 'placement';
     if (metadata.stage) {
       // Use stage from backend metadata (most reliable)
       stage = metadata.stage;
-      console.log('[GameOfStrife] Using stage from metadata:', stage);
     } else if (isFinished) {
       stage = 'finished';
-      console.log('[GameOfStrife] Using stage from isFinished:', stage);
     } else if (matchState.currentTurn === null) {
       // When no current turn, likely in simulation phase
       stage = 'simulation';
-      console.log('[GameOfStrife] Using stage from currentTurn=null:', stage);
     }
 
     // IMPORTANT: Save placement board BEFORE transitioning to simulation/finished
@@ -190,7 +125,6 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     if (stage === 'placement' && board) {
       // Save a deep copy of the placement board
       placementBoardRef.current = board.map((row: Cell[]) => row.map((cell: Cell) => ({ ...cell })));
-      console.log('[GameOfStrife] Saved placement board in useMemo');
     }
 
     return {
@@ -209,22 +143,24 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
   // Run Conway's simulation when entering simulation phase
   useEffect(() => {
-    console.log('[GameOfStrife] useEffect check:', {
-      stage: gameData.stage,
-      hasStarted: hasStartedSimulation.current,
-      hasBoard: !!gameData.board,
-      hasPlacementBoard: !!placementBoardRef.current,
-      generation: gameData.generation
-    });
+    if (DEV_MODE) {
+      console.log('[GameOfStrife] useEffect check:', {
+        stage: gameData.stage,
+        hasStarted: hasStartedSimulation.current,
+        hasBoard: !!gameData.board,
+        hasPlacementBoard: !!placementBoardRef.current,
+        generation: gameData.generation
+      });
+    }
 
     // Check if we should start simulation
     if ((gameData.stage === 'simulation' || gameData.stage === 'finished') && !hasStartedSimulation.current && placementBoardRef.current) {
-      console.log('[GameOfStrife] Starting simulation animation from placement board!');
+      if (DEV_MODE) console.log('[GameOfStrife] Starting simulation animation from placement board!');
       hasStartedSimulation.current = true;
       setIsSimulating(true);
 
       // PRE-CALCULATE ALL GENERATIONS (fast, runs in <100ms even on large boards)
-      console.log('[GameOfStrife] Pre-calculating all generations...');
+      if (DEV_MODE) console.log('[GameOfStrife] Pre-calculating all generations...');
       const startTime = Date.now();
 
       const generations: Cell[][][] = [];
@@ -240,7 +176,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
         // Stop early if board becomes stable
         if (boardsEqual(currentBoard, nextBoard)) {
-          console.log(`[GameOfStrife] Board stabilized at generation ${i + 1}`);
+          if (DEV_MODE) console.log(`[GameOfStrife] Board stabilized at generation ${i + 1}`);
           break;
         }
 
@@ -251,7 +187,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       generationsRef.current = generations;
 
       const calcTime = Date.now() - startTime;
-      console.log(`[GameOfStrife] Pre-calculated ${generations.length} generations in ${calcTime}ms`);
+      if (DEV_MODE) console.log(`[GameOfStrife] Pre-calculated ${generations.length} generations in ${calcTime}ms`);
 
       // ANIMATE BY INCREMENTING INDEX ONLY (1 state variable = minimal re-renders)
       setCurrentGenerationIndex(0);
@@ -264,8 +200,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           // Only update index - board will be derived from generationsRef
           setCurrentGenerationIndex(frameIndex);
 
-          // Continue animation at 60fps (16.67ms per frame)
-          simulationTimerRef.current = setTimeout(animateNextFrame, 17);
+          // Continue animation at 20fps (50ms per frame)
+          simulationTimerRef.current = setTimeout(animateNextFrame, 50);
         } else {
           // Animation complete
           const finalBoard = generationsRef.current[generationsRef.current.length - 1];
@@ -273,7 +209,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
             player0: countLivingCells(finalBoard, 0),
             player1: countLivingCells(finalBoard, 1)
           };
-          console.log(`[GameOfStrife] Simulation complete! Final: P1=${scores.player0}, P2=${scores.player1}`);
+          if (DEV_MODE) console.log(`[GameOfStrife] Simulation complete! Final: P1=${scores.player0}, P2=${scores.player1}`);
           setFinalScores(scores);
           setIsSimulating(false);
           setSimulationComplete(true);
@@ -281,7 +217,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       };
 
       // Start animation
-      console.log(`[GameOfStrife] Starting 60fps animation (${generations.length} frames)...`);
+      if (DEV_MODE) console.log(`[GameOfStrife] Starting 20fps animation (${generations.length} frames)...`);
       simulationTimerRef.current = setTimeout(animateNextFrame, 100);
     }
 
@@ -296,7 +232,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   // Reset simulation state when match changes
   useEffect(() => {
     if (matchState?.status === 'active' && matchState?.currentTurn !== null) {
-      console.log('[GameOfStrife] Resetting simulation state for new match');
+      if (DEV_MODE) console.log('[GameOfStrife] Resetting simulation state for new match');
       hasStartedSimulation.current = false;
       placementBoardRef.current = null;
       setIsSimulating(false);
@@ -309,9 +245,9 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
   // Handle game actions from the board
   const handleGameAction = useCallback((action: any) => {
-    console.log('[GameOfStrife] handleGameAction called:', action, 'matchState:', !!matchState, 'mySeat:', mySeat);
+    if (DEV_MODE) console.log('[GameOfStrife] handleGameAction called:', action, 'matchState:', !!matchState, 'mySeat:', mySeat);
     if (!matchState || !mySeat) {
-      console.log('[GameOfStrife] Action blocked - no matchState or mySeat');
+      if (DEV_MODE) console.log('[GameOfStrife] Action blocked - no matchState or mySeat');
       return;
     }
 
@@ -333,13 +269,15 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           superpowerType = playerManifest[currentPlacementIndex];
         }
 
-        console.log(`🎯 PLACING TOKEN #${currentPlacementIndex + 1} with SUPERPOWER TYPE ${superpowerType}`, {
-          position: action.payload.position,
-          seat: mySeat,
-          manifestHas: playerManifest ? 'YES' : 'NO',
-          manifestLength: playerManifest?.length || 0,
-          fullManifest: playerManifest
-        });
+        if (DEV_MODE) {
+          console.log(`🎯 PLACING TOKEN #${currentPlacementIndex + 1} with SUPERPOWER TYPE ${superpowerType}`, {
+            position: action.payload.position,
+            seat: mySeat,
+            manifestHas: playerManifest ? 'YES' : 'NO',
+            manifestLength: playerManifest?.length || 0,
+            fullManifest: playerManifest
+          });
+        }
 
         // Convert to socket claim square action with superpowerType
         onAction(action.payload.position, superpowerType);
@@ -474,7 +412,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
                 🧬 Conway's Game of Life simulation in progress...
               </Text>
               <Text variant="bodySmall" style={styles.textPurpleLight}>
-                Generation {simulationGeneration}
+                Generation {displayGeneration}
               </Text>
             </Card.Content>
           </Card>
@@ -573,7 +511,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
               )}
 
               <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
-                Simulation ran for {simulationGeneration} generations
+                Simulation ran for {generationsRef.current.length - 1} generations
               </Text>
 
               {/* Rematch Status Indicator */}
