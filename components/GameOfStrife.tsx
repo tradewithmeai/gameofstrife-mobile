@@ -248,47 +248,41 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       const calcTime = Date.now() - startTime;
       console.log(`[GameOfStrife] Pre-calculated ${generations.length} generations in ${calcTime}ms`);
 
-      // ANIMATE THROUGH PRE-CALCULATED GENERATIONS (smooth 60fps)
+      // ANIMATE THROUGH PRE-CALCULATED GENERATIONS
+      // Skip frames to reduce re-renders (show every 2nd generation for smooth animation)
       let animationFrame = 0;
-      const fps = 30; // Target 30fps for smooth animation
-      const frameInterval = 1000 / fps; // ~33ms per frame
-      let lastFrameTime = Date.now();
+      const skipFrames = 2; // Show every 2nd generation
+      const msPerFrame = 16; // ~16ms per shown frame = smooth fast animation
 
       const animateNextFrame = () => {
-        const now = Date.now();
-        const elapsed = now - lastFrameTime;
+        animationFrame += skipFrames;
 
-        if (elapsed >= frameInterval) {
-          lastFrameTime = now;
-          animationFrame++;
+        if (animationFrame < generations.length) {
+          // Update state with pre-calculated generation
+          setSimulationBoard(generations[animationFrame]);
+          setSimulationGeneration(animationFrame);
 
-          if (animationFrame < generations.length) {
-            // Update state with pre-calculated generation
-            setSimulationBoard(generations[animationFrame]);
-            setSimulationGeneration(animationFrame);
-
-            // Continue animation
-            simulationTimerRef.current = setTimeout(animateNextFrame, frameInterval);
-          } else {
-            // Animation complete
-            const finalBoard = generations[generations.length - 1];
-            const scores = {
-              player0: countLivingCells(finalBoard, 0),
-              player1: countLivingCells(finalBoard, 1)
-            };
-            console.log(`[GameOfStrife] Simulation complete! Final: P1=${scores.player0}, P2=${scores.player1}`);
-            setFinalScores(scores);
-            setIsSimulating(false);
-            setSimulationComplete(true);
-          }
+          // Continue animation
+          simulationTimerRef.current = setTimeout(animateNextFrame, msPerFrame);
         } else {
-          // Not enough time passed, try again
-          simulationTimerRef.current = setTimeout(animateNextFrame, frameInterval - elapsed);
+          // Animation complete - show final generation
+          const finalBoard = generations[generations.length - 1];
+          setSimulationBoard(finalBoard);
+          setSimulationGeneration(generations.length - 1);
+
+          const scores = {
+            player0: countLivingCells(finalBoard, 0),
+            player1: countLivingCells(finalBoard, 1)
+          };
+          console.log(`[GameOfStrife] Simulation complete! Final: P1=${scores.player0}, P2=${scores.player1}`);
+          setFinalScores(scores);
+          setIsSimulating(false);
+          setSimulationComplete(true);
         }
       };
 
-      // Start animation after brief delay
-      console.log('[GameOfStrife] Starting animation at 30fps...');
+      // Start animation immediately
+      console.log(`[GameOfStrife] Starting animation (showing every ${skipFrames} generations)...`);
       simulationTimerRef.current = setTimeout(animateNextFrame, 100);
     }
 
