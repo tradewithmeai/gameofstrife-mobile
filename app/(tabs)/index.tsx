@@ -210,7 +210,7 @@ export default function LobbyScreen() {
           mode="contained"
           onPress={() => startPracticeMode(settings)}
           style={[styles.button, styles.practiceButton]}
-          disabled={!isConnected || inMatch || !!currentRoom}
+          disabled={inMatch || !!currentRoom}
           icon="account"
         >
           Practice Mode
