@@ -61,6 +61,10 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   const hasStartedSimulation = useRef(false);
   const placementBoardRef = useRef<Cell[][] | null>(null);
 
+  // Pre-calculated generations storage (avoids re-renders)
+  const generationsRef = useRef<Cell[][][]>([]);
+  const [currentGenerationIndex, setCurrentGenerationIndex] = useState(0);
+
   // Convert match state to Game of Strife format
   const gameData = useMemo(() => {
     if (!matchState) {
@@ -228,7 +232,6 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       generations.push(currentBoard); // Gen 0
 
       const maxGenerations = 100;
-      let finalGeneration = maxGenerations;
 
       // Calculate all generations upfront
       for (let i = 0; i < maxGenerations; i++) {
@@ -237,39 +240,35 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
         // Stop early if board becomes stable
         if (boardsEqual(currentBoard, nextBoard)) {
-          finalGeneration = i + 1;
-          console.log(`[GameOfStrife] Board stabilized at generation ${finalGeneration}`);
+          console.log(`[GameOfStrife] Board stabilized at generation ${i + 1}`);
           break;
         }
 
         currentBoard = nextBoard;
       }
 
+      // Store in ref (doesn't trigger re-render)
+      generationsRef.current = generations;
+
       const calcTime = Date.now() - startTime;
       console.log(`[GameOfStrife] Pre-calculated ${generations.length} generations in ${calcTime}ms`);
 
-      // ANIMATE THROUGH PRE-CALCULATED GENERATIONS
-      // Skip frames to reduce re-renders (show every 2nd generation for smooth animation)
-      let animationFrame = 0;
-      const skipFrames = 2; // Show every 2nd generation
-      const msPerFrame = 16; // ~16ms per shown frame = smooth fast animation
+      // ANIMATE BY INCREMENTING INDEX ONLY (1 state variable = minimal re-renders)
+      setCurrentGenerationIndex(0);
+      let frameIndex = 0;
 
       const animateNextFrame = () => {
-        animationFrame += skipFrames;
+        frameIndex++;
 
-        if (animationFrame < generations.length) {
-          // Update state with pre-calculated generation
-          setSimulationBoard(generations[animationFrame]);
-          setSimulationGeneration(animationFrame);
+        if (frameIndex < generationsRef.current.length) {
+          // Only update index - board will be derived from generationsRef
+          setCurrentGenerationIndex(frameIndex);
 
-          // Continue animation
-          simulationTimerRef.current = setTimeout(animateNextFrame, msPerFrame);
+          // Continue animation at 60fps (16.67ms per frame)
+          simulationTimerRef.current = setTimeout(animateNextFrame, 17);
         } else {
-          // Animation complete - show final generation
-          const finalBoard = generations[generations.length - 1];
-          setSimulationBoard(finalBoard);
-          setSimulationGeneration(generations.length - 1);
-
+          // Animation complete
+          const finalBoard = generationsRef.current[generationsRef.current.length - 1];
           const scores = {
             player0: countLivingCells(finalBoard, 0),
             player1: countLivingCells(finalBoard, 1)
@@ -281,8 +280,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
         }
       };
 
-      // Start animation immediately
-      console.log(`[GameOfStrife] Starting animation (showing every ${skipFrames} generations)...`);
+      // Start animation
+      console.log(`[GameOfStrife] Starting 60fps animation (${generations.length} frames)...`);
       simulationTimerRef.current = setTimeout(animateNextFrame, 100);
     }
 
@@ -421,8 +420,9 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   const isPlacementStage = gameData.stage === 'placement';
 
   // Use simulation board when simulating, otherwise use game board
-  const displayBoard = simulationBoard || gameData.board;
-  const displayGeneration = isSimulating ? simulationGeneration : gameData.generation;
+  // Derive board from ref + index (avoids re-rendering entire board structure)
+  const displayBoard = generationsRef.current[currentGenerationIndex] || simulationBoard || gameData.board;
+  const displayGeneration = isSimulating ? currentGenerationIndex : gameData.generation;
 
   return (
     <ScrollView
