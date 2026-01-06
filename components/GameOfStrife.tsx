@@ -200,8 +200,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           // Only update index - board will be derived from generationsRef
           setCurrentGenerationIndex(frameIndex);
 
-          // Continue animation at 20fps (50ms per frame)
-          simulationTimerRef.current = setTimeout(animateNextFrame, 50);
+          // Continue animation at 30fps (33ms per frame)
+          simulationTimerRef.current = setTimeout(animateNextFrame, 33);
         } else {
           // Animation complete
           const finalBoard = generationsRef.current[generationsRef.current.length - 1];
