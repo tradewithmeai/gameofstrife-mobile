@@ -236,7 +236,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                     key={`${rowIndex}-${colIndex}`}
                     style={cellStyle}
                   >
-                    {cell.alive && cell.lives > 0 && (
+                    {cell.alive && (
                       <Text style={styles.livesText}>{cell.lives}</Text>
                     )}
                   </View>
@@ -250,7 +250,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                   disabled={!isPlacementStage || !isMyTurn}
                   style={cellStyle}
                 >
-                  {cell.alive && cell.lives > 0 && (
+                  {cell.alive && (
                     <Text style={styles.livesText}>{cell.lives}</Text>
                   )}
                 </Pressable>
