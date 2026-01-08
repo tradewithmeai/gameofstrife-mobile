@@ -1,6 +1,7 @@
 // Settings store for Game of Strife configuration (React Native)
 import { create } from 'zustand'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { DEFAULT_SUPERPOWER_LIVES } from '../utils/colors'
 
 export interface GameSettings {
   tokensPerPlayer: number
@@ -9,6 +10,11 @@ export interface GameSettings {
   survivalRules: number[]
   enabledSuperpowers: number[]
   superpowerPercentage: number
+  useArcadeTheme: boolean
+  animationSpeed: number
+  enableToroidalBoard: boolean
+  superpowerLives: Record<number, number>
+  enableSuperpowerAnimations: boolean
 }
 
 export interface LogSession {
@@ -24,7 +30,12 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   birthRules: [3],
   survivalRules: [2, 3],
   enabledSuperpowers: [1, 2, 3, 4, 5, 6, 7],
-  superpowerPercentage: 20
+  superpowerPercentage: 20,
+  useArcadeTheme: false,
+  animationSpeed: 30,
+  enableToroidalBoard: true,
+  superpowerLives: DEFAULT_SUPERPOWER_LIVES,
+  enableSuperpowerAnimations: true
 }
 
 const SETTINGS_STORAGE_KEY = 'gameofstrife_settings'

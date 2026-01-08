@@ -1,22 +1,16 @@
 import { Stack } from 'expo-router';
-import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
+import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { useEffect } from 'react';
 import { initLogging } from '../utils/devMode';
-
-const theme = {
-  ...MD3DarkTheme,
-  colors: {
-    ...MD3DarkTheme.colors,
-    primary: '#3B82F6', // Blue (P1)
-    secondary: '#10B981', // Green (P2)
-    background: '#111827',
-    surface: '#1F2937',
-  },
-};
+import { ArcadeTheme, DefaultTheme } from '../utils/theme';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export default function RootLayout() {
+  const useArcadeTheme = useSettingsStore(state => state.settings.useArcadeTheme);
+  const theme = useArcadeTheme ? ArcadeTheme : DefaultTheme;
+
   useEffect(() => {
     // Initialize file logging on app start
     initLogging();
