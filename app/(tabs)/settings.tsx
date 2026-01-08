@@ -295,8 +295,8 @@ export default function SettingsScreen() {
               </Text>
               <Slider
                 minimumValue={10}
-                maximumValue={200}
-                step={5}
+                maximumValue={500}
+                step={10}
                 value={animationSpeed}
                 onValueChange={setAnimationSpeed}
                 minimumTrackTintColor="#3B82F6"

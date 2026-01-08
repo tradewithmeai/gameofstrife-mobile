@@ -536,14 +536,41 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
               <View style={styles.buttonRow}>
                 <Button
                   mode="outlined"
+                  onPress={() => {
+                    // Replay animation from start
+                    setSimulationComplete(false);
+                    setIsSimulating(true);
+                    setCurrentGenerationIndex(0);
+
+                    let frameIndex = 0;
+                    const animateNextFrame = () => {
+                      frameIndex++;
+                      if (frameIndex < generationsRef.current.length) {
+                        setCurrentGenerationIndex(frameIndex);
+                        simulationTimerRef.current = setTimeout(animateNextFrame, frameInterval);
+                      } else {
+                        setIsSimulating(false);
+                        setSimulationComplete(true);
+                      }
+                    };
+                    simulationTimerRef.current = setTimeout(animateNextFrame, 100);
+                  }}
+                  style={styles.flexButton}
+                  icon="replay"
+                >
+                  Replay
+                </Button>
+
+                <Button
+                  mode="outlined"
                   onPress={handleReturnToLobby}
                   style={styles.flexButton}
                 >
-                  Return to Lobby
+                  Lobby
                 </Button>
 
                 <Button mode="contained" onPress={handleRematch} style={styles.flexButton}>
-                  Play Again
+                  New Game
                 </Button>
               </View>
             </Card.Content>
