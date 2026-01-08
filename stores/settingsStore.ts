@@ -46,7 +46,12 @@ const loadSettingsFromStorage = async (): Promise<GameSettings> => {
   try {
     const stored = await AsyncStorage.getItem(SETTINGS_STORAGE_KEY)
     if (stored) {
-      return JSON.parse(stored) as GameSettings
+      const parsed = JSON.parse(stored)
+      // Merge with defaults to handle missing fields (backwards compatibility)
+      return {
+        ...DEFAULT_GAME_SETTINGS,
+        ...parsed
+      }
     }
   } catch (error) {
     console.error('[SettingsStore] Failed to load settings from AsyncStorage:', error)

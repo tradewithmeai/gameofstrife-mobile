@@ -9,12 +9,14 @@ import { useSettingsStore } from '../stores/settingsStore';
 
 export default function RootLayout() {
   const useArcadeTheme = useSettingsStore(state => state.settings.useArcadeTheme);
+  const loadSettings = useSettingsStore(state => state.loadSettings);
   const theme = useArcadeTheme ? ArcadeTheme : DefaultTheme;
 
   useEffect(() => {
-    // Initialize file logging on app start
+    // Initialize app on startup
     initLogging();
-  }, []);
+    loadSettings(); // Load persisted settings from AsyncStorage
+  }, [loadSettings]);
 
   return (
     <GestureHandlerRootView style={styles.container}>
