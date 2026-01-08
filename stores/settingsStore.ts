@@ -15,6 +15,7 @@ export interface GameSettings {
   enableToroidalBoard: boolean
   superpowerLives: Record<number, number>
   enableSuperpowerAnimations: boolean
+  enableSuperpowerBirth: boolean  // Allow superpowers to be assigned to newly born cells during simulation
 }
 
 export interface LogSession {
@@ -35,7 +36,8 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   animationSpeed: 50, // 50ms per frame = 20fps (moderate speed)
   enableToroidalBoard: true,
   superpowerLives: DEFAULT_SUPERPOWER_LIVES,
-  enableSuperpowerAnimations: true
+  enableSuperpowerAnimations: true,
+  enableSuperpowerBirth: true  // Allow superpowers during simulation by default
 }
 
 const SETTINGS_STORAGE_KEY = 'gameofstrife_settings'

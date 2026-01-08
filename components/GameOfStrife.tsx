@@ -54,6 +54,10 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   // Get settings
   const animationSpeed = useSettingsStore(state => state.settings.animationSpeed);
   const enableToroidalBoard = useSettingsStore(state => state.settings.enableToroidalBoard);
+  const enableSuperpowerBirth = useSettingsStore(state => state.settings.enableSuperpowerBirth);
+  const enabledSuperpowers = useSettingsStore(state => state.settings.enabledSuperpowers);
+  const superpowerPercentage = useSettingsStore(state => state.settings.superpowerPercentage);
+  const superpowerLives = useSettingsStore(state => state.settings.superpowerLives);
   const frameInterval = animationSpeed; // Direct milliseconds per frame
 
   // Simulation state
@@ -176,7 +180,15 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
       // Calculate all generations upfront
       for (let i = 0; i < maxGenerations; i++) {
-        const nextBoard = simulateOneGeneration(currentBoard, gameData.conwayRules, enableToroidalBoard);
+        const nextBoard = simulateOneGeneration(
+          currentBoard,
+          gameData.conwayRules,
+          enableToroidalBoard,
+          enableSuperpowerBirth,
+          enabledSuperpowers,
+          superpowerPercentage,
+          superpowerLives
+        );
         generations.push(nextBoard);
 
         // Stop early if board becomes stable

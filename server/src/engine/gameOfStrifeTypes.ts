@@ -88,6 +88,7 @@ export interface GameOfStrifeSettings {
   simulationGenerations?: number     // Optional limit for simulation
   enableToroidalBoard?: boolean      // Wraparound board edges (default: true)
   superpowerLives?: Record<number, number>  // Lives per superpower type (0-7)
+  enableSuperpowerBirth?: boolean    // Allow superpowers to be assigned to newly born cells during simulation
 }
 
 // Default game settings
@@ -102,6 +103,7 @@ export const DEFAULT_GAME_SETTINGS: GameOfStrifeSettings = {
   superpowerPercentage: 20,                    // 20% spawn rate
   simulationGenerations: 100,  // Reasonable limit to prevent infinite games
   enableToroidalBoard: true,   // Wraparound edges enabled by default
+  enableSuperpowerBirth: true, // Allow superpowers during simulation by default
   superpowerLives: {
     0: 0,  // Normal cells - die immediately (mortal)
     1: 3,  // Tank - medium durability

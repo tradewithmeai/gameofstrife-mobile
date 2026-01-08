@@ -20,6 +20,7 @@ export default function SettingsScreen() {
   const [useArcadeTheme, setUseArcadeTheme] = useState(settings.useArcadeTheme);
   const [animationSpeed, setAnimationSpeed] = useState(settings.animationSpeed);
   const [enableToroidalBoard, setEnableToroidalBoard] = useState(settings.enableToroidalBoard);
+  const [enableSuperpowerBirth, setEnableSuperpowerBirth] = useState(settings.enableSuperpowerBirth);
   const [enableSuperpowerAnimations, setEnableSuperpowerAnimations] = useState(settings.enableSuperpowerAnimations);
   const [logFileInfo, setLogFileInfo] = useState<{ exists: boolean; sizeKB: string; sizeMB: string; path: string } | null>(null);
 
@@ -83,6 +84,7 @@ export default function SettingsScreen() {
       useArcadeTheme,
       animationSpeed,
       enableToroidalBoard,
+      enableSuperpowerBirth,
       superpowerLives: settings.superpowerLives, // Keep current lives config
       enableSuperpowerAnimations,
     };
@@ -102,6 +104,7 @@ export default function SettingsScreen() {
     setUseArcadeTheme(DEFAULT_GAME_SETTINGS.useArcadeTheme);
     setAnimationSpeed(DEFAULT_GAME_SETTINGS.animationSpeed);
     setEnableToroidalBoard(DEFAULT_GAME_SETTINGS.enableToroidalBoard);
+    setEnableSuperpowerBirth(DEFAULT_GAME_SETTINGS.enableSuperpowerBirth);
     setEnableSuperpowerAnimations(DEFAULT_GAME_SETTINGS.enableSuperpowerAnimations);
   };
 
@@ -339,6 +342,22 @@ export default function SettingsScreen() {
               <Switch
                 value={enableToroidalBoard}
                 onValueChange={setEnableToroidalBoard}
+              />
+            </View>
+
+            {/* Superpower Birth Toggle */}
+            <View style={[styles.settingRow, styles.marginTop]}>
+              <View style={styles.settingInfo}>
+                <Text variant="bodyMedium" style={styles.label}>
+                  Superpower Birth During Simulation
+                </Text>
+                <Text variant="bodySmall" style={styles.helpText}>
+                  Newly born cells can become superpowers during simulation
+                </Text>
+              </View>
+              <Switch
+                value={enableSuperpowerBirth}
+                onValueChange={setEnableSuperpowerBirth}
               />
             </View>
           </Card.Content>

@@ -21,6 +21,19 @@ export class GameOfStrifeEngine implements GameEngine {
   }
 
   /**
+   * Randomly assign a superpower type based on enabled superpowers and percentage chance
+   */
+  private assignSuperpower(): number {
+    const { enabledSuperpowers, superpowerPercentage } = this.settings
+    if (enabledSuperpowers.length === 0 || Math.random() >= superpowerPercentage / 100) {
+      return 0 // Normal cell
+    }
+    // Pick a random superpower from enabled ones
+    const randomIndex = Math.floor(Math.random() * enabledSuperpowers.length)
+    return enabledSuperpowers[randomIndex]
+  }
+
+  /**
    * Generate a manifest of pre-allocated superpowers for a player
    * Ensures even distribution by guaranteeing exact percentage
    */
@@ -436,6 +449,7 @@ export class GameOfStrifeEngine implements GameEngine {
         // Lives system: cells can survive death by spending lives
         let finalAlive = shouldLive
         let finalLives = cell.lives
+        let finalSuperpowerType = cell.superpowerType
         let finalMemory = this.updateMemory(cell, shouldLive, aliveNeighbors)
 
         if (cell.alive && !shouldLive) {
@@ -451,15 +465,22 @@ export class GameOfStrifeEngine implements GameEngine {
             finalLives = 0
           }
         } else if (!cell.alive && shouldLive) {
-          // Cell is born - inherit lives from parent cells (for now default to 0)
-          // Lives will be set properly when cell is placed
-          finalLives = 0
+          // Cell is born - assign superpower if enabled and owner is valid
+          const enableSuperpowerBirth = this.settings.enableSuperpowerBirth ?? true
+          if (enableSuperpowerBirth && newOwner !== null) {
+            finalSuperpowerType = this.assignSuperpower()
+            finalLives = this.settings.superpowerLives?.[finalSuperpowerType] ?? 0
+          } else {
+            // No superpower birth - born as normal cell with 0 lives
+            finalSuperpowerType = 0
+            finalLives = 0
+          }
         }
 
         newBoard[row][col] = {
           player: newOwner,
           alive: finalAlive,
-          superpowerType: finalAlive ? cell.superpowerType : 0,
+          superpowerType: finalAlive ? finalSuperpowerType : 0,
           memory: finalMemory,
           lives: finalLives
         }

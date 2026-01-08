@@ -125,6 +125,16 @@ export function countLivingCells(board: Cell[][], player?: number): number {
   return count
 }
 
+// Randomly assign a superpower type based on enabled superpowers and percentage chance
+export function assignSuperpower(enabledSuperpowers: number[], superpowerPercentage: number): number {
+  if (enabledSuperpowers.length === 0 || Math.random() >= superpowerPercentage / 100) {
+    return 0; // Normal cell
+  }
+  // Pick a random superpower from enabled ones
+  const randomIndex = Math.floor(Math.random() * enabledSuperpowers.length);
+  return enabledSuperpowers[randomIndex];
+}
+
 export function getBoardFromFlat(flatBoard: (string | null)[], boardSize: number): Cell[][] {
   const board = createEmptyBoard(boardSize)
 
@@ -175,7 +185,15 @@ export function indexToPosition(index: number, boardSize: number): { row: number
 }
 
 // Conway's Game of Life simulation
-export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFAULT_CONWAY_RULES, toroidal: boolean = true): Cell[][] {
+export function simulateOneGeneration(
+  board: Cell[][],
+  rules: ConwayRules = DEFAULT_CONWAY_RULES,
+  toroidal: boolean = true,
+  enableSuperpowerBirth: boolean = false,
+  enabledSuperpowers: number[] = [],
+  superpowerPercentage: number = 0,
+  superpowerLives: Record<number, number> = {}
+): Cell[][] {
   const size = board.length
   const newBoard = createEmptyBoard(size)
 
@@ -192,6 +210,7 @@ export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFA
       // Lives system: cells can survive death by spending lives
       let finalAlive = shouldLive
       let finalLives = cell.lives
+      let finalSuperpowerType = cell.superpowerType
       let finalMemory = updateMemory(cell, shouldLive, aliveNeighbors)
 
       if (cell.alive && !shouldLive) {
@@ -207,15 +226,21 @@ export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFA
           finalLives = 0
         }
       } else if (!cell.alive && shouldLive) {
-        // Cell is born - inherit lives from parent cells (for now default to 0)
-        // Lives will be set properly when cell is placed
-        finalLives = 0
+        // Cell is born - assign superpower if enabled and owner is valid
+        if (enableSuperpowerBirth && newOwner !== null) {
+          finalSuperpowerType = assignSuperpower(enabledSuperpowers, superpowerPercentage)
+          finalLives = superpowerLives[finalSuperpowerType] ?? 0
+        } else {
+          // No superpower birth - born as normal cell with 0 lives
+          finalSuperpowerType = 0
+          finalLives = 0
+        }
       }
 
       newBoard[row][col] = {
         player: newOwner,
         alive: finalAlive,
-        superpowerType: finalAlive ? cell.superpowerType : 0,
+        superpowerType: finalAlive ? finalSuperpowerType : 0,
         memory: finalMemory,
         lives: finalLives
       }
