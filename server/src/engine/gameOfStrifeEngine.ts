@@ -470,17 +470,28 @@ export class GameOfStrifeEngine implements GameEngine {
   private getNeighbors(board: Cell[][], row: number, col: number): Cell[] {
     const neighbors: Cell[] = []
     const size = board.length
+    const toroidal = this.settings.enableToroidalBoard ?? true
 
-    // Moore neighborhood (8 directions) with toroidal wraparound
+    // Moore neighborhood (8 directions)
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (dr === 0 && dc === 0) continue // Skip self
 
-        // Wraparound using modulo (toroidal topology)
-        // Adding size before modulo ensures positive results for negative indices
-        const wrappedRow = (row + dr + size) % size
-        const wrappedCol = (col + dc + size) % size
-        neighbors.push(board[wrappedRow][wrappedCol])
+        const newRow = row + dr
+        const newCol = col + dc
+
+        if (toroidal) {
+          // Wraparound using modulo (toroidal topology)
+          // Adding size before modulo ensures positive results for negative indices
+          const wrappedRow = (newRow + size) % size
+          const wrappedCol = (newCol + size) % size
+          neighbors.push(board[wrappedRow][wrappedCol])
+        } else {
+          // Flat edges - only add if within bounds
+          if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+            neighbors.push(board[newRow][newCol])
+          }
+        }
       }
     }
 

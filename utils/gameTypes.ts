@@ -175,14 +175,14 @@ export function indexToPosition(index: number, boardSize: number): { row: number
 }
 
 // Conway's Game of Life simulation
-export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFAULT_CONWAY_RULES): Cell[][] {
+export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFAULT_CONWAY_RULES, toroidal: boolean = true): Cell[][] {
   const size = board.length
   const newBoard = createEmptyBoard(size)
 
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {
       const cell = board[row][col]
-      const neighbors = getNeighbors(board, row, col)
+      const neighbors = getNeighbors(board, row, col, toroidal)
       const aliveNeighbors = neighbors.filter(n => n.alive).length
 
       // Apply Conway's rules
@@ -225,20 +225,30 @@ export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFA
   return newBoard
 }
 
-function getNeighbors(board: Cell[][], row: number, col: number): Cell[] {
+function getNeighbors(board: Cell[][], row: number, col: number, toroidal: boolean = true): Cell[] {
   const neighbors: Cell[] = []
   const size = board.length
 
-  // Moore neighborhood (8 directions) with toroidal wraparound
+  // Moore neighborhood (8 directions)
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       if (dr === 0 && dc === 0) continue // Skip self
 
-      // Wraparound using modulo (toroidal topology)
-      // Adding size before modulo ensures positive results for negative indices
-      const wrappedRow = (row + dr + size) % size
-      const wrappedCol = (col + dc + size) % size
-      neighbors.push(board[wrappedRow][wrappedCol])
+      const newRow = row + dr
+      const newCol = col + dc
+
+      if (toroidal) {
+        // Wraparound using modulo (toroidal topology)
+        // Adding size before modulo ensures positive results for negative indices
+        const wrappedRow = (newRow + size) % size
+        const wrappedCol = (newCol + size) % size
+        neighbors.push(board[wrappedRow][wrappedCol])
+      } else {
+        // Flat edges - only add if within bounds
+        if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+          neighbors.push(board[newRow][newCol])
+        }
+      }
     }
   }
 

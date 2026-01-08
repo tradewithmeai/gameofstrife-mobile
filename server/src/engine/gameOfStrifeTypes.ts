@@ -86,6 +86,7 @@ export interface GameOfStrifeSettings {
   enabledSuperpowers: number[]       // Array of enabled superpower IDs (1-7)
   superpowerPercentage: number       // Percentage of tokens that spawn as superpowers (0-50)
   simulationGenerations?: number     // Optional limit for simulation
+  enableToroidalBoard?: boolean      // Wraparound board edges (default: true)
 }
 
 // Default game settings
@@ -98,7 +99,8 @@ export const DEFAULT_GAME_SETTINGS: GameOfStrifeSettings = {
   },
   enabledSuperpowers: [1, 2, 3, 4, 5, 6, 7],  // All superpowers enabled by default
   superpowerPercentage: 20,                    // 20% spawn rate
-  simulationGenerations: 100  // Reasonable limit to prevent infinite games
+  simulationGenerations: 100,  // Reasonable limit to prevent infinite games
+  enableToroidalBoard: true    // Wraparound edges enabled by default
 }
 
 // Superpower definitions for reference

@@ -51,8 +51,9 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     isPracticeMode
   } = useSocketStore();
 
-  // Get animation speed from settings (in milliseconds per frame)
+  // Get settings
   const animationSpeed = useSettingsStore(state => state.settings.animationSpeed);
+  const enableToroidalBoard = useSettingsStore(state => state.settings.enableToroidalBoard);
   const frameInterval = animationSpeed; // Direct milliseconds per frame
 
   // Simulation state
@@ -175,7 +176,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
 
       // Calculate all generations upfront
       for (let i = 0; i < maxGenerations; i++) {
-        const nextBoard = simulateOneGeneration(currentBoard, gameData.conwayRules);
+        const nextBoard = simulateOneGeneration(currentBoard, gameData.conwayRules, enableToroidalBoard);
         generations.push(nextBoard);
 
         // Stop early if board becomes stable
