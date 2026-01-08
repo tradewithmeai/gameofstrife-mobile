@@ -24,11 +24,20 @@ export default function LobbyScreen() {
     startPracticeMode
   } = useSocketStore();
 
-  const { settings } = useSettingsStore();
+  const { settings, loadSettings } = useSettingsStore();
 
   const [joinCode, setJoinCode] = useState('');
   const [showJoinInput, setShowJoinInput] = useState(false);
   const [copiedCode, setCopiedCode] = useState('');
+
+  // Debug log settings on mount
+  useEffect(() => {
+    console.log('[LobbyScreen] Settings loaded:', {
+      boardSize: settings?.boardSize,
+      tokensPerPlayer: settings?.tokensPerPlayer,
+      hasAllFields: settings?.boardSize !== undefined && settings?.tokensPerPlayer !== undefined
+    });
+  }, [settings]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -220,7 +229,10 @@ export default function LobbyScreen() {
         {/* Practice Mode - 1-player practice session */}
         <Button
           mode="contained"
-          onPress={() => startPracticeMode(settings)}
+          onPress={() => {
+            console.log('[LobbyScreen] Practice Mode clicked!', { inMatch, currentRoom, settings });
+            startPracticeMode(settings);
+          }}
           style={[styles.button, styles.practiceButton]}
           disabled={inMatch || !!currentRoom}
           icon="account"
@@ -339,7 +351,10 @@ export default function LobbyScreen() {
           </Text>
           <Button
             mode="text"
-            onPress={() => router.push('/settings')}
+            onPress={() => {
+              console.log('[LobbyScreen] Settings button clicked!');
+              router.push('/settings');
+            }}
             compact
             icon="cog"
           >

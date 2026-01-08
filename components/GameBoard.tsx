@@ -235,7 +235,11 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                   <View
                     key={`${rowIndex}-${colIndex}`}
                     style={cellStyle}
-                  />
+                  >
+                    {cell.alive && cell.lives > 0 && (
+                      <Text style={styles.livesText}>{cell.lives}</Text>
+                    )}
+                  </View>
                 );
               }
 
@@ -245,7 +249,11 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                   onPress={() => handleCellPress(rowIndex, colIndex)}
                   disabled={!isPlacementStage || !isMyTurn}
                   style={cellStyle}
-                />
+                >
+                  {cell.alive && cell.lives > 0 && (
+                    <Text style={styles.livesText}>{cell.lives}</Text>
+                  )}
+                </Pressable>
               );
             })}
           </View>
@@ -337,5 +345,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 3,
     elevation: 3,
+  },
+  livesText: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+    lineHeight: 20,
   },
 });

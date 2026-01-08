@@ -298,12 +298,7 @@ export default function SettingsScreen() {
                 maximumValue={60}
                 step={1}
                 value={animationSpeed}
-                onValueChange={(value) => {
-                  // Snap to preset values (15, 20, 30, 45, 60) if within 2 fps
-                  const presets = [15, 20, 30, 45, 60];
-                  const nearestPreset = presets.find(preset => Math.abs(preset - value) <= 2);
-                  setAnimationSpeed(nearestPreset || value);
-                }}
+                onValueChange={setAnimationSpeed}
                 minimumTrackTintColor="#3B82F6"
                 maximumTrackTintColor="#374151"
                 thumbTintColor="#3B82F6"
