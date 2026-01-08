@@ -1277,12 +1277,16 @@ export const useSocketStore = create<SocketState>((set, get) => {
       const manifestSuperpower = metadata.player0Superpowers?.[placementIndex] || 0
       const finalSuperpowerType = superpowerType !== undefined ? superpowerType : manifestSuperpower
 
+      // Get lives for this superpower type from settings
+      const settings = useSettingsStore.getState().settings
+      const lives = settings.superpowerLives[finalSuperpowerType] ?? 0
+
       metadata.fullBoard[row][col] = {
         player: 0, // P1 = player 0
         alive: true,
         superpowerType: finalSuperpowerType,
         memory: 0,
-        lives: 0  // TODO: Set based on superpowerType from settings (0 for normal, N for super)
+        lives
       }
 
       console.log('[Practice] Placed token at', { squareId, row, col, superpowerType: finalSuperpowerType, tokensLeft: metadata.playerTokens.player0 })

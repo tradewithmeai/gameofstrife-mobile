@@ -84,11 +84,11 @@ export const SUPERPOWER_COLORS = {
 
 // Default superpower lives configuration
 export const DEFAULT_SUPERPOWER_LIVES: Record<number, number> = {
-  0: 1,  // Normal cells
+  0: 0,  // Normal cells - die immediately (mortal)
   1: 3,  // Tank - medium durability
   2: 2,  // Spreader - low durability
   3: 5,  // Survivor - high durability
-  4: 1,  // Ghost - ethereal (no extra lives)
+  4: 1,  // Ghost - ethereal (minimal extra lives)
   5: 2,  // Replicator - low durability
   6: 4,  // Destroyer - high durability
   7: 3,  // Hybrid - medium durability

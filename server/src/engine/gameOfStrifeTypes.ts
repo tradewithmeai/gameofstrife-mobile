@@ -87,6 +87,7 @@ export interface GameOfStrifeSettings {
   superpowerPercentage: number       // Percentage of tokens that spawn as superpowers (0-50)
   simulationGenerations?: number     // Optional limit for simulation
   enableToroidalBoard?: boolean      // Wraparound board edges (default: true)
+  superpowerLives?: Record<number, number>  // Lives per superpower type (0-7)
 }
 
 // Default game settings
@@ -100,7 +101,17 @@ export const DEFAULT_GAME_SETTINGS: GameOfStrifeSettings = {
   enabledSuperpowers: [1, 2, 3, 4, 5, 6, 7],  // All superpowers enabled by default
   superpowerPercentage: 20,                    // 20% spawn rate
   simulationGenerations: 100,  // Reasonable limit to prevent infinite games
-  enableToroidalBoard: true    // Wraparound edges enabled by default
+  enableToroidalBoard: true,   // Wraparound edges enabled by default
+  superpowerLives: {
+    0: 0,  // Normal cells - die immediately (mortal)
+    1: 3,  // Tank - medium durability
+    2: 2,  // Spreader - low durability
+    3: 5,  // Survivor - high durability
+    4: 1,  // Ghost - ethereal (minimal extra lives)
+    5: 2,  // Replicator - low durability
+    6: 4,  // Destroyer - high durability
+    7: 3,  // Hybrid - medium durability
+  }
 }
 
 // Superpower definitions for reference

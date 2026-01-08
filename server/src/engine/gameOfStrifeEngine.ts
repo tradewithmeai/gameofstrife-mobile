@@ -235,12 +235,14 @@ export class GameOfStrifeEngine implements GameEngine {
     } else {
       // Place new token
       const superpowerType = (options?.superpowerType || 0) as SuperpowerType;
+      // Get lives for this superpower type from settings (default to 0 if not configured)
+      const lives = this.settings.superpowerLives?.[superpowerType] ?? 0;
       newBoard[row][col] = {
         player: playerIndex,
         alive: true, // Placed tokens start alive
         superpowerType,
         memory: 0,
-        lives: 0  // TODO: Set lives based on superpowerType from settings (0 for normal, N for super)
+        lives  // Set based on superpowerType: 0 for normal, 3 for Tank, 5 for Survivor, etc.
       };
     }
 
