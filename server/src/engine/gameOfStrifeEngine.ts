@@ -230,16 +230,17 @@ export class GameOfStrifeEngine implements GameEngine {
         alive: false,
         superpowerType: 0,
         memory: 0,
-        lives: 1
+        lives: 0
       };
     } else {
       // Place new token
+      const superpowerType = (options?.superpowerType || 0) as SuperpowerType;
       newBoard[row][col] = {
         player: playerIndex,
         alive: true, // Placed tokens start alive
-        superpowerType: (options?.superpowerType || 0) as SuperpowerType, // Use provided superpower type or default to normal
+        superpowerType,
         memory: 0,
-        lives: 1  // TODO: Set lives based on superpowerType from settings
+        lives: 0  // TODO: Set lives based on superpowerType from settings (0 for normal, N for super)
       };
     }
 
@@ -437,20 +438,20 @@ export class GameOfStrifeEngine implements GameEngine {
 
         if (cell.alive && !shouldLive) {
           // Cell would die - check if it has lives to spend
-          if (cell.lives > 1) {
-            // Spend a life to survive
+          if (cell.lives >= 1) {
+            // Has lives to spend - survive and decrement
             finalAlive = true
             finalLives = cell.lives - 1
             finalMemory |= MemoryFlags.HAS_SURVIVED_DEATH
           } else {
-            // Out of lives - truly dies
+            // No lives (0) - dies immediately like normal cell
             finalAlive = false
             finalLives = 0
           }
         } else if (!cell.alive && shouldLive) {
-          // Cell is born - set initial lives based on superpower type
-          // Lives will be set properly when cell is placed, for now default to 1
-          finalLives = 1
+          // Cell is born - inherit lives from parent cells (for now default to 0)
+          // Lives will be set properly when cell is placed
+          finalLives = 0
         }
 
         newBoard[row][col] = {

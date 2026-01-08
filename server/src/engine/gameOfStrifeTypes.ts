@@ -119,7 +119,7 @@ export const createEmptyCell = (): Cell => ({
   alive: false,
   superpowerType: 0,
   memory: 0,
-  lives: 1
+  lives: 0  // Normal cells have 0 lives (die immediately)
 })
 
 export const createBoard = (size: number): Cell[][] => {

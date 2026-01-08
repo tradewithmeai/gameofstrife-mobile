@@ -1281,7 +1281,8 @@ export const useSocketStore = create<SocketState>((set, get) => {
         player: 0, // P1 = player 0
         alive: true,
         superpowerType: finalSuperpowerType,
-        memory: 0
+        memory: 0,
+        lives: 0  // TODO: Set based on superpowerType from settings (0 for normal, N for super)
       }
 
       console.log('[Practice] Placed token at', { squareId, row, col, superpowerType: finalSuperpowerType, tokensLeft: metadata.playerTokens.player0 })

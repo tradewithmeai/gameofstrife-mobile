@@ -94,7 +94,7 @@ export function createEmptyCell(): Cell {
     alive: false,
     superpowerType: 0,
     memory: 0,
-    lives: 1
+    lives: 0  // Normal cells have 0 lives (die immediately)
   }
 }
 
@@ -196,20 +196,20 @@ export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFA
 
       if (cell.alive && !shouldLive) {
         // Cell would die - check if it has lives to spend
-        if (cell.lives > 1) {
-          // Spend a life to survive
+        if (cell.lives >= 1) {
+          // Has lives to spend - survive and decrement
           finalAlive = true
           finalLives = cell.lives - 1
           finalMemory |= MEMORY_FLAGS.HAS_SURVIVED_DEATH
         } else {
-          // Out of lives - truly dies
+          // No lives (0) - dies immediately like normal cell
           finalAlive = false
           finalLives = 0
         }
       } else if (!cell.alive && shouldLive) {
-        // Cell is born - set initial lives based on superpower type
-        // Lives will be set properly when cell is placed, for now default to 1
-        finalLives = 1
+        // Cell is born - inherit lives from parent cells (for now default to 0)
+        // Lives will be set properly when cell is placed
+        finalLives = 0
       }
 
       newBoard[row][col] = {
