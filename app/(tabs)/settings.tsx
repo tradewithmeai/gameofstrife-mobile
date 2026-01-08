@@ -1,10 +1,11 @@
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Card, Button, TextInput, Chip } from 'react-native-paper';
+import { Text, Card, Button, TextInput, Chip, Switch } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useSettingsStore, DEFAULT_GAME_SETTINGS } from '../../stores/settingsStore';
 import { getLogs, clearLogs, getLogFileInfo, DEV_MODE } from '../../utils/devMode';
 import Constants from 'expo-constants';
+import Slider from '@react-native-community/slider';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -16,6 +17,10 @@ export default function SettingsScreen() {
   const [survivalRules, setSurvivalRules] = useState(settings.survivalRules.join(','));
   const [superpowerPercentage, setSuperpowerPercentage] = useState(settings.superpowerPercentage);
   const [enabledSuperpowers, setEnabledSuperpowers] = useState(settings.enabledSuperpowers);
+  const [useArcadeTheme, setUseArcadeTheme] = useState(settings.useArcadeTheme);
+  const [animationSpeed, setAnimationSpeed] = useState(settings.animationSpeed);
+  const [enableToroidalBoard, setEnableToroidalBoard] = useState(settings.enableToroidalBoard);
+  const [enableSuperpowerAnimations, setEnableSuperpowerAnimations] = useState(settings.enableSuperpowerAnimations);
   const [logFileInfo, setLogFileInfo] = useState<{ exists: boolean; sizeKB: string; sizeMB: string; path: string } | null>(null);
 
   // Load log file info and sessions when component mounts
@@ -75,6 +80,11 @@ export default function SettingsScreen() {
       survivalRules: survivalRules.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n)),
       superpowerPercentage,
       enabledSuperpowers,
+      useArcadeTheme,
+      animationSpeed,
+      enableToroidalBoard,
+      superpowerLives: settings.superpowerLives, // Keep current lives config
+      enableSuperpowerAnimations,
     };
     await setSettings(newSettings);
     // Navigate back to lobby after saving
@@ -89,6 +99,10 @@ export default function SettingsScreen() {
     setSurvivalRules(DEFAULT_GAME_SETTINGS.survivalRules.join(','));
     setSuperpowerPercentage(DEFAULT_GAME_SETTINGS.superpowerPercentage);
     setEnabledSuperpowers(DEFAULT_GAME_SETTINGS.enabledSuperpowers);
+    setUseArcadeTheme(DEFAULT_GAME_SETTINGS.useArcadeTheme);
+    setAnimationSpeed(DEFAULT_GAME_SETTINGS.animationSpeed);
+    setEnableToroidalBoard(DEFAULT_GAME_SETTINGS.enableToroidalBoard);
+    setEnableSuperpowerAnimations(DEFAULT_GAME_SETTINGS.enableSuperpowerAnimations);
   };
 
   const handleClearLogs = async () => {
@@ -244,6 +258,93 @@ export default function SettingsScreen() {
                   {sp.name}
                 </Chip>
               ))}
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Visual & Animation Settings */}
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Visual & Animation
+            </Text>
+
+            {/* Theme Toggle */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text variant="bodyMedium" style={styles.label}>
+                  {useArcadeTheme ? "🎮 80's Arcade Theme" : "📊 Classic Theme"}
+                </Text>
+                <Text variant="bodySmall" style={styles.helpText}>
+                  Toggle between neon arcade and professional themes
+                </Text>
+              </View>
+              <Switch
+                value={useArcadeTheme}
+                onValueChange={setUseArcadeTheme}
+              />
+            </View>
+
+            {/* Animation Speed Slider */}
+            <View style={styles.marginTop}>
+              <Text variant="bodyMedium" style={styles.label}>
+                Animation Speed: {animationSpeed} FPS
+              </Text>
+              <Text variant="bodySmall" style={styles.helpText}>
+                Higher = faster simulation playback
+              </Text>
+              <Slider
+                minimumValue={10}
+                maximumValue={60}
+                step={1}
+                value={animationSpeed}
+                onValueChange={(value) => {
+                  // Snap to preset values (15, 20, 30, 45, 60) if within 2 fps
+                  const presets = [15, 20, 30, 45, 60];
+                  const nearestPreset = presets.find(preset => Math.abs(preset - value) <= 2);
+                  setAnimationSpeed(nearestPreset || value);
+                }}
+                minimumTrackTintColor="#3B82F6"
+                maximumTrackTintColor="#374151"
+                thumbTintColor="#3B82F6"
+                style={styles.slider}
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabel}>Slow</Text>
+                <Text style={styles.sliderLabel}>Fast</Text>
+              </View>
+            </View>
+
+            {/* Superpower Animations Toggle */}
+            <View style={[styles.settingRow, styles.marginTop]}>
+              <View style={styles.settingInfo}>
+                <Text variant="bodyMedium" style={styles.label}>
+                  Animate Superpower Cells
+                </Text>
+                <Text variant="bodySmall" style={styles.helpText}>
+                  Disable on large boards for better performance
+                </Text>
+              </View>
+              <Switch
+                value={enableSuperpowerAnimations}
+                onValueChange={setEnableSuperpowerAnimations}
+              />
+            </View>
+
+            {/* Toroidal Board Toggle */}
+            <View style={[styles.settingRow, styles.marginTop]}>
+              <View style={styles.settingInfo}>
+                <Text variant="bodyMedium" style={styles.label}>
+                  Wraparound Board Edges
+                </Text>
+                <Text variant="bodySmall" style={styles.helpText}>
+                  Board edges connect to opposite sides (standard Conway rules)
+                </Text>
+              </View>
+              <Switch
+                value={enableToroidalBoard}
+                onValueChange={setEnableToroidalBoard}
+              />
             </View>
           </Card.Content>
         </Card>
@@ -469,5 +570,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
     marginTop: 24,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: 16,
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+  },
+  sliderLabel: {
+    color: '#9CA3AF',
+    fontSize: 12,
   },
 });
