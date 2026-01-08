@@ -48,9 +48,11 @@ const loadSettingsFromStorage = async (): Promise<GameSettings> => {
     if (stored) {
       const parsed = JSON.parse(stored)
       // Merge with defaults to handle missing fields (backwards compatibility)
+      // Always use default superpowerLives to ensure users get updated balance changes
       return {
         ...DEFAULT_GAME_SETTINGS,
-        ...parsed
+        ...parsed,
+        superpowerLives: DEFAULT_SUPERPOWER_LIVES  // Always use current defaults for lives
       }
     }
   } catch (error) {
