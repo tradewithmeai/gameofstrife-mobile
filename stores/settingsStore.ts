@@ -32,7 +32,7 @@ export const DEFAULT_GAME_SETTINGS: GameSettings = {
   enabledSuperpowers: [1, 2, 3, 4, 5, 6, 7],
   superpowerPercentage: 20,
   useArcadeTheme: false,
-  animationSpeed: 30,
+  animationSpeed: 50, // 50ms per frame = 20fps (moderate speed)
   enableToroidalBoard: true,
   superpowerLives: DEFAULT_SUPERPOWER_LIVES,
   enableSuperpowerAnimations: true

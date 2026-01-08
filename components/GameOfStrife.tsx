@@ -51,9 +51,9 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     isPracticeMode
   } = useSocketStore();
 
-  // Get animation speed from settings
+  // Get animation speed from settings (in milliseconds per frame)
   const animationSpeed = useSettingsStore(state => state.settings.animationSpeed);
-  const frameInterval = 1000 / animationSpeed; // Convert fps to milliseconds
+  const frameInterval = animationSpeed; // Direct milliseconds per frame
 
   // Simulation state
   const [simulationBoard, setSimulationBoard] = useState<Cell[][] | null>(null);
@@ -221,7 +221,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       };
 
       // Start animation
-      if (DEV_MODE) console.log(`[GameOfStrife] Starting ${animationSpeed}fps animation (${generations.length} frames)...`);
+      if (DEV_MODE) console.log(`[GameOfStrife] Starting animation at ${animationSpeed}ms per frame (${generations.length} frames)...`);
       simulationTimerRef.current = setTimeout(animateNextFrame, 100); // Small initial delay
     }
 

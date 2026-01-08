@@ -288,15 +288,15 @@ export default function SettingsScreen() {
             {/* Animation Speed Slider */}
             <View style={styles.marginTop}>
               <Text variant="bodyMedium" style={styles.label}>
-                Animation Speed: {animationSpeed} FPS
+                Animation Speed: {animationSpeed}ms per frame
               </Text>
               <Text variant="bodySmall" style={styles.helpText}>
-                Higher = faster simulation playback
+                Lower = faster, Higher = slower
               </Text>
               <Slider
                 minimumValue={10}
-                maximumValue={60}
-                step={1}
+                maximumValue={200}
+                step={5}
                 value={animationSpeed}
                 onValueChange={setAnimationSpeed}
                 minimumTrackTintColor="#3B82F6"
@@ -305,8 +305,8 @@ export default function SettingsScreen() {
                 style={styles.slider}
               />
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>Slow</Text>
                 <Text style={styles.sliderLabel}>Fast</Text>
+                <Text style={styles.sliderLabel}>Slow</Text>
               </View>
             </View>
 
