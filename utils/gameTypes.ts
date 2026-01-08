@@ -5,6 +5,7 @@ export interface Cell {
   alive: boolean;
   superpowerType: number; // 0 = normal, 1-7 = different superpower types
   memory: number; // 32-bit flags for persistent memory
+  lives: number; // Number of lives remaining (default: 1 for normal cells)
 }
 
 export type GameStage = 'placement' | 'simulation' | 'paused' | 'finished' | 'waiting';
@@ -92,7 +93,8 @@ export function createEmptyCell(): Cell {
     player: null,
     alive: false,
     superpowerType: 0,
-    memory: 0
+    memory: 0,
+    lives: 1
   }
 }
 
@@ -187,11 +189,35 @@ export function simulateOneGeneration(board: Cell[][], rules: ConwayRules = DEFA
       const shouldLive = shouldCellLive(cell, aliveNeighbors, rules)
       const newOwner = determineNewOwner(cell, neighbors, aliveNeighbors, rules)
 
+      // Lives system: cells can survive death by spending lives
+      let finalAlive = shouldLive
+      let finalLives = cell.lives
+      let finalMemory = updateMemory(cell, shouldLive, aliveNeighbors)
+
+      if (cell.alive && !shouldLive) {
+        // Cell would die - check if it has lives to spend
+        if (cell.lives > 1) {
+          // Spend a life to survive
+          finalAlive = true
+          finalLives = cell.lives - 1
+          finalMemory |= MEMORY_FLAGS.HAS_SURVIVED_DEATH
+        } else {
+          // Out of lives - truly dies
+          finalAlive = false
+          finalLives = 0
+        }
+      } else if (!cell.alive && shouldLive) {
+        // Cell is born - set initial lives based on superpower type
+        // Lives will be set properly when cell is placed, for now default to 1
+        finalLives = 1
+      }
+
       newBoard[row][col] = {
         player: newOwner,
-        alive: shouldLive,
-        superpowerType: shouldLive ? cell.superpowerType : 0,
-        memory: updateMemory(cell, shouldLive, aliveNeighbors)
+        alive: finalAlive,
+        superpowerType: finalAlive ? cell.superpowerType : 0,
+        memory: finalMemory,
+        lives: finalLives
       }
     }
   }
@@ -203,17 +229,16 @@ function getNeighbors(board: Cell[][], row: number, col: number): Cell[] {
   const neighbors: Cell[] = []
   const size = board.length
 
-  // Moore neighborhood (8 directions)
+  // Moore neighborhood (8 directions) with toroidal wraparound
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       if (dr === 0 && dc === 0) continue // Skip self
 
-      const newRow = row + dr
-      const newCol = col + dc
-
-      if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
-        neighbors.push(board[newRow][newCol])
-      }
+      // Wraparound using modulo (toroidal topology)
+      // Adding size before modulo ensures positive results for negative indices
+      const wrappedRow = (row + dr + size) % size
+      const wrappedCol = (col + dc + size) % size
+      neighbors.push(board[wrappedRow][wrappedCol])
     }
   }
 

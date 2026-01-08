@@ -19,6 +19,7 @@ export interface Cell {
   alive: boolean
   superpowerType: SuperpowerType  // 0-7 (normal + 7 superpower types)
   memory: number           // 32-bit flags for persistent effects
+  lives: number            // Number of lives remaining (default: 1 for normal cells)
 }
 
 // Game phases
@@ -117,7 +118,8 @@ export const createEmptyCell = (): Cell => ({
   player: null,
   alive: false,
   superpowerType: 0,
-  memory: 0
+  memory: 0,
+  lives: 1
 })
 
 export const createBoard = (size: number): Cell[][] => {

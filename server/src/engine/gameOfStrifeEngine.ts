@@ -229,7 +229,8 @@ export class GameOfStrifeEngine implements GameEngine {
         player: null,
         alive: false,
         superpowerType: 0,
-        memory: 0
+        memory: 0,
+        lives: 1
       };
     } else {
       // Place new token
@@ -237,7 +238,8 @@ export class GameOfStrifeEngine implements GameEngine {
         player: playerIndex,
         alive: true, // Placed tokens start alive
         superpowerType: (options?.superpowerType || 0) as SuperpowerType, // Use provided superpower type or default to normal
-        memory: 0
+        memory: 0,
+        lives: 1  // TODO: Set lives based on superpowerType from settings
       };
     }
 
@@ -428,11 +430,35 @@ export class GameOfStrifeEngine implements GameEngine {
         const shouldLive = this.shouldCellLive(cell, aliveNeighbors)
         const newOwner = this.determineNewOwner(cell, neighbors)
 
+        // Lives system: cells can survive death by spending lives
+        let finalAlive = shouldLive
+        let finalLives = cell.lives
+        let finalMemory = this.updateMemory(cell, shouldLive, aliveNeighbors)
+
+        if (cell.alive && !shouldLive) {
+          // Cell would die - check if it has lives to spend
+          if (cell.lives > 1) {
+            // Spend a life to survive
+            finalAlive = true
+            finalLives = cell.lives - 1
+            finalMemory |= MemoryFlags.HAS_SURVIVED_DEATH
+          } else {
+            // Out of lives - truly dies
+            finalAlive = false
+            finalLives = 0
+          }
+        } else if (!cell.alive && shouldLive) {
+          // Cell is born - set initial lives based on superpower type
+          // Lives will be set properly when cell is placed, for now default to 1
+          finalLives = 1
+        }
+
         newBoard[row][col] = {
           player: newOwner,
-          alive: shouldLive,
-          superpowerType: shouldLive ? cell.superpowerType : 0,
-          memory: this.updateMemory(cell, shouldLive, aliveNeighbors)
+          alive: finalAlive,
+          superpowerType: finalAlive ? cell.superpowerType : 0,
+          memory: finalMemory,
+          lives: finalLives
         }
       }
     }
@@ -444,17 +470,16 @@ export class GameOfStrifeEngine implements GameEngine {
     const neighbors: Cell[] = []
     const size = board.length
 
-    // Moore neighborhood (8 directions)
+    // Moore neighborhood (8 directions) with toroidal wraparound
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (dr === 0 && dc === 0) continue // Skip self
 
-        const newRow = row + dr
-        const newCol = col + dc
-
-        if (isValidPosition(newRow, newCol, size)) {
-          neighbors.push(board[newRow][newCol])
-        }
+        // Wraparound using modulo (toroidal topology)
+        // Adding size before modulo ensures positive results for negative indices
+        const wrappedRow = (row + dr + size) % size
+        const wrappedCol = (col + dc + size) % size
+        neighbors.push(board[wrappedRow][wrappedCol])
       }
     }
 
