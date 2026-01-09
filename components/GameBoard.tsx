@@ -35,6 +35,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 }) => {
   const boardRef = useRef<View>(null);
   const lastPlacedCell = useRef<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Animated values for superpower effects (shared by type for efficiency)
   const animatedValues = useRef({
@@ -175,6 +176,31 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     lastPlacedCell.current = null; // Reset for new placement
     handlePlacement(row, col);
   }, [handlePlacement]);
+
+  // Handle drag start - when finger first touches a cell
+  const handleDragStart = useCallback((row: number, col: number) => {
+    if (!isPlacementStage || !isMyTurn || isFinished) return;
+
+    console.log('[GameBoard] Drag started:', { row, col });
+    setIsDragging(true);
+    lastPlacedCell.current = null; // Reset for new drag
+    handlePlacement(row, col);
+  }, [isPlacementStage, isMyTurn, isFinished, handlePlacement]);
+
+  // Handle drag over cell - when finger moves over a cell while dragging
+  const handleDragOver = useCallback((row: number, col: number) => {
+    if (!isDragging || !isPlacementStage || !isMyTurn || isFinished) return;
+
+    console.log('[GameBoard] Drag over:', { row, col });
+    handlePlacement(row, col);
+  }, [isDragging, isPlacementStage, isMyTurn, isFinished, handlePlacement]);
+
+  // Handle drag end - when finger lifts
+  const handleDragEnd = useCallback(() => {
+    console.log('[GameBoard] Drag ended');
+    setIsDragging(false);
+    lastPlacedCell.current = null;
+  }, []);
 
   // Get animated style interpolations for superpower cells
   const getAnimatedStyle = useCallback((cell: Cell) => {
@@ -468,11 +494,14 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                 );
               }
 
-              // Use AnimatedPressable with combined styles
+              // Use AnimatedPressable with drag support
               return (
                 <AnimatedPressable
                   key={`${rowIndex}-${colIndex}`}
                   onPress={() => handleCellPress(rowIndex, colIndex)}
+                  onPressIn={() => handleDragStart(rowIndex, colIndex)}
+                  onTouchEnd={handleDragEnd}
+                  onHoverIn={() => handleDragOver(rowIndex, colIndex)}
                   disabled={!isPlacementStage || !isMyTurn}
                   style={[baseCellStyle, animatedStyle]}
                 >
