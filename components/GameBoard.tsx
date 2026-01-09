@@ -218,16 +218,25 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
 
   // Handle touch start - begin drag
   const handleTouchStart = useCallback((e: GestureResponderEvent) => {
-    if (!isPlacementStage || !isMyTurn || isFinished) return;
+    if (!isPlacementStage || !isMyTurn || isFinished) {
+      console.log('[GameBoard] Touch start blocked:', { isPlacementStage, isMyTurn, isFinished });
+      return;
+    }
+
+    console.log('[GameBoard] Touch start - pageX:', e.nativeEvent.pageX, 'pageY:', e.nativeEvent.pageY);
+    console.log('[GameBoard] Board layout:', boardLayoutRef.current);
 
     setIsDragging(true);
     lastPlacedCell.current = null;
 
     // Place token at starting position
     const cell = getCellFromTouch(e.nativeEvent.pageX, e.nativeEvent.pageY);
+    console.log('[GameBoard] Touch start calculated cell:', cell);
     if (cell) {
-      console.log('[GameBoard] Touch start at cell:', cell);
+      console.log('[GameBoard] ✅ Placing token at cell:', cell);
       handlePlacement(cell.row, cell.col);
+    } else {
+      console.log('[GameBoard] ❌ No valid cell for touch position');
     }
   }, [isPlacementStage, isMyTurn, isFinished, getCellFromTouch, handlePlacement]);
 
@@ -515,8 +524,15 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
       <View
         ref={boardRef}
         onLayout={handleBoardLayout}
-        onStartShouldSetResponder={() => isPlacementStage && isMyTurn && !isFinished}
-        onMoveShouldSetResponder={() => isPlacementStage && isMyTurn && !isFinished}
+        onStartShouldSetResponder={() => {
+          const shouldSet = isPlacementStage && isMyTurn && !isFinished;
+          console.log('[GameBoard] onStartShouldSetResponder:', shouldSet, { isPlacementStage, isMyTurn, isFinished });
+          return shouldSet;
+        }}
+        onMoveShouldSetResponder={() => {
+          const shouldSet = isPlacementStage && isMyTurn && !isFinished;
+          return shouldSet;
+        }}
         onResponderGrant={handleTouchStart}
         onResponderMove={handleTouchMove}
         onResponderRelease={handleTouchEnd}
@@ -541,33 +557,18 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
               // Get animated styles for superpower cells
               const animatedStyle = getAnimatedStyle(cell);
 
+              // During placement: use plain View (touch handled at board level)
               // During simulation/finished: use Animated.View with animations
-              // During placement: use AnimatedPressable (touchable + animated)
-              if (stage === 'simulation' || stage === 'finished') {
-                return (
-                  <Animated.View
-                    key={`${rowIndex}-${colIndex}`}
-                    style={[baseCellStyle, animatedStyle]}
-                  >
-                    {cell.alive && (
-                      <Text style={styles.livesText}>{cell.lives}</Text>
-                    )}
-                  </Animated.View>
-                );
-              }
-
-              // Use AnimatedPressable (drag handled at board level)
+              // Always use Animated.View - touch logic handled by board responder
               return (
-                <AnimatedPressable
+                <Animated.View
                   key={`${rowIndex}-${colIndex}`}
-                  onPress={() => handleCellPress(rowIndex, colIndex)}
-                  disabled={!isPlacementStage || !isMyTurn}
                   style={[baseCellStyle, animatedStyle]}
                 >
                   {cell.alive && (
                     <Text style={styles.livesText}>{cell.lives}</Text>
                   )}
-                </AnimatedPressable>
+                </Animated.View>
               );
             })}
           </View>
