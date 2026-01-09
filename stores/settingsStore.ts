@@ -1,21 +1,48 @@
-// Settings store for Game of Strife configuration (React Native)
+/**
+ * Settings Store for Game of Strife
+ *
+ * Manages user-configurable game settings with AsyncStorage persistence.
+ * Settings are loaded on app start and saved automatically when changed.
+ *
+ * Key Features:
+ * - Persistent storage using React Native AsyncStorage
+ * - Default values for all settings
+ * - Backwards compatibility (merges stored settings with defaults)
+ * - Reset to defaults functionality
+ * - Always uses current default superpower lives (for balance updates)
+ */
 import { create } from 'zustand'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { DEFAULT_SUPERPOWER_LIVES } from '../utils/colors'
 
+/**
+ * Game configuration settings interface
+ */
 export interface GameSettings {
+  /** Number of tokens each player can place (1-100) */
   tokensPerPlayer: number
+  /** Board grid dimensions (NxN, typically 5-15) */
   boardSize: number
+  /** Neighbor counts that cause birth ([3] = standard Conway) */
   birthRules: number[]
+  /** Neighbor counts that allow survival ([2,3] = standard Conway) */
   survivalRules: number[]
+  /** Enabled superpower type IDs (1-7) */
   enabledSuperpowers: number[]
+  /** Chance of superpower spawn (0-50%) */
   superpowerPercentage: number
+  /** Use arcade color theme (not yet implemented) */
   useArcadeTheme: boolean
+  /** Simulation animation speed in ms per frame (10-500ms) */
   animationSpeed: number
+  /** Wraparound board edges (toroidal topology) */
   enableToroidalBoard: boolean
+  /** Lives per superpower type (0-7) */
   superpowerLives: Record<number, number>
+  /** Show animated visual effects on superpowers */
   enableSuperpowerAnimations: boolean
-  enableSuperpowerBirth: boolean  // Allow superpowers to be assigned to newly born cells during simulation
+  /** Allow newly born cells to inherit superpowers */
+  enableSuperpowerBirth: boolean
 }
 
 export interface LogSession {

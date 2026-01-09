@@ -1,29 +1,41 @@
-// Arcade color palette for Game of Strife
-// 80's arcade aesthetic with neon colors on black
+/**
+ * Arcade Color Palette for Game of Strife
+ *
+ * Design Philosophy:
+ * - 80's arcade aesthetic with neon colors on black backgrounds
+ * - High contrast for clear visibility
+ * - Distinctive colors for each superpower type
+ * - Saturated, vibrant colors that "pop" on screen
+ *
+ * Note: useArcadeTheme setting not yet implemented - uses standard theme for now
+ */
 
+/**
+ * Main arcade color palette
+ */
 export const ARCADE_COLORS = {
-  // Player colors
-  player1: '#00F5FF',      // Neon cyan
-  player2: '#FF006E',      // Hot pink
+  // Player identification colors
+  player1: '#00F5FF',      // Neon cyan - bright and energetic
+  player2: '#FF006E',      // Hot pink - contrasts well with cyan
 
-  // Superpower colors
-  tank: '#FFFFFF',         // Bright white (unchanged - works well)
-  spreader: '#00F5FF',     // Neon cyan (enhanced from current)
-  survivor: '#FFFF00',     // Electric yellow (more vibrant)
-  ghost: '#FF10F0',        // Neon magenta (more vibrant purple)
-  replicator: '#FF6600',   // Bright orange (more saturated)
-  destroyer: '#FF0000',    // Pure red (more intense)
-  hybrid: '#B026FF',       // Electric purple (more vibrant)
+  // Superpower type colors (Types 1-7)
+  tank: '#FFFFFF',         // Bright white - defensive, pure, strong
+  spreader: '#00F5FF',     // Neon cyan - flowing, spreading energy
+  survivor: '#FFFF00',     // Electric yellow - attention-demanding, persistent
+  ghost: '#FF10F0',        // Neon magenta - otherworldly, ethereal
+  replicator: '#FF6600',   // Bright orange - explosive, energetic
+  destroyer: '#FF0000',    // Pure red - danger, aggression, power
+  hybrid: '#B026FF',       // Electric purple - sophisticated, complex
 
-  // UI colors
-  background: '#000000',   // Pure black
-  surface: '#1A0033',      // Deep purple-black
-  gridLines: '#330066',    // Dark purple
-  text: '#00F5FF',         // Neon cyan
-  textSecondary: '#FF10F0', // Neon magenta
-  accent: '#FFFF00',       // Electric yellow
-  danger: '#FF0000',       // Pure red
-  success: '#00FF00',      // Neon green
+  // UI/Layout colors
+  background: '#000000',   // Pure black - maximum contrast
+  surface: '#1A0033',      // Deep purple-black - subtle depth
+  gridLines: '#330066',    // Dark purple - visible but not distracting
+  text: '#00F5FF',         // Neon cyan - primary text
+  textSecondary: '#FF10F0', // Neon magenta - secondary/hint text
+  accent: '#FFFF00',       // Electric yellow - highlights, warnings
+  danger: '#FF0000',       // Pure red - errors, destructive actions
+  success: '#00FF00',      // Neon green - success states, confirmations
 };
 
 export const ARCADE_THEME = {
@@ -82,14 +94,30 @@ export const SUPERPOWER_COLORS = {
   7: ARCADE_COLORS.hybrid,      // Hybrid - purple
 };
 
-// Default superpower lives configuration
+/**
+ * Default Lives Configuration for Superpower Types
+ *
+ * Lives System:
+ * - Normal cells (type 0) have 0 lives = die immediately when death conditions met
+ * - Superpower cells (types 1-7) have 1-5 lives = survive multiple death events
+ * - Each time death conditions met, lives decrement by 1
+ * - Cell actually dies when lives reach 0
+ *
+ * Balance Philosophy:
+ * - Defensive types (Tank, Destroyer, Survivor) have more lives (3-5)
+ * - Offensive/utility types (Spreader, Replicator, Ghost) have fewer lives (1-2)
+ * - Hybrid balances offense and defense (3 lives)
+ *
+ * Note: These values are always loaded from code (not from stored settings)
+ * to ensure users automatically receive balance updates
+ */
 export const DEFAULT_SUPERPOWER_LIVES: Record<number, number> = {
-  0: 0,  // Normal cells - die immediately (mortal)
-  1: 3,  // Tank - medium durability
-  2: 2,  // Spreader - low durability
-  3: 5,  // Survivor - high durability
-  4: 1,  // Ghost - ethereal (minimal extra lives)
-  5: 2,  // Replicator - low durability
-  6: 4,  // Destroyer - high durability
-  7: 3,  // Hybrid - medium durability
+  0: 0,  // Normal cells - die immediately (standard Conway behavior)
+  1: 3,  // Tank - medium durability (defensive role)
+  2: 2,  // Spreader - low durability (offensive spread before dying)
+  3: 5,  // Survivor - highest durability (ultimate endurance)
+  4: 1,  // Ghost - ethereal (minimal lives, unpredictable)
+  5: 2,  // Replicator - low durability (create offspring then die)
+  6: 4,  // Destroyer - high durability (sustained assault)
+  7: 3,  // Hybrid - medium durability (balanced capabilities)
 };

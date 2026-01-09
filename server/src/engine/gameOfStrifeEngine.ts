@@ -1,3 +1,30 @@
+/**
+ * Game of Strife Engine - Conway's Game of Life Competitive Implementation
+ *
+ * Core game loop:
+ * 1. Placement Phase: Players take turns placing tokens on the board
+ * 2. Simulation Phase: Conway's Game of Life runs for up to 100 generations
+ * 3. Result: Player with most living cells wins
+ *
+ * Key Features:
+ * - Superpower cells with extra lives and special properties
+ * - Configurable Conway rules (birth/survival patterns)
+ * - Toroidal board support (wraparound edges)
+ * - Pre-allocated superpower manifests for even distribution
+ * - Lives system (normal cells = 0 lives, superpowers = 1-5 lives)
+ * - Memory flags for tracking cell history (veteran, battle-scarred, etc.)
+ *
+ * Conway's Standard Rules (B3/S23):
+ * - Birth: Dead cell with exactly 3 neighbors becomes alive
+ * - Survival: Living cell with 2 or 3 neighbors survives
+ * - Death: < 2 neighbors (underpopulation) or > 3 neighbors (overpopulation)
+ *
+ * Superpower Lives Mechanic:
+ * - Normal cells (type 0) have 0 lives → die immediately
+ * - Superpower cells (types 1-7) have 1-5 lives → survive multiple death events
+ * - Lives decrement when death conditions met
+ * - Cell actually dies when lives reach 0
+ */
 import { GameEngine, EngineState, ValidationResult, ClaimApplication, ResultCheck } from './types.js'
 import {
   GameOfStrifeEngineState,
@@ -13,9 +40,17 @@ import {
 } from './gameOfStrifeTypes.js'
 import { logger } from '../utils/logger.js'
 
+/**
+ * Game of Strife Engine Implementation
+ * Implements GameEngine interface for Conway's Game of Life competitive gameplay
+ */
 export class GameOfStrifeEngine implements GameEngine {
   private settings: GameOfStrifeSettings
 
+  /**
+   * Initialize engine with custom settings
+   * @param settings - Partial settings object (merged with defaults)
+   */
   constructor(settings: Partial<GameOfStrifeSettings> = {}) {
     this.settings = { ...DEFAULT_GAME_SETTINGS, ...settings }
   }

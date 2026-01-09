@@ -1,24 +1,54 @@
-// Game of Strife GameBoard for React Native
+/**
+ * Game of Strife GameBoard Component
+ *
+ * Renders the game board with support for:
+ * - Touch interactions (tap and drag-to-place)
+ * - Superpower visual effects with animations
+ * - Responsive sizing for phones, tablets, and Chromebooks
+ * - Conway's Game of Life cell rendering
+ *
+ * Architecture:
+ * - Board-level gesture responder for drag-to-place functionality
+ * - Shared Animated.Value per superpower type for memory-efficient animations
+ * - Bresenham line interpolation for smooth drag trails
+ * - Responsive cell sizing based on device dimensions
+ */
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { View, Pressable, StyleSheet, useWindowDimensions, GestureResponderEvent, Text, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cell, MEMORY_FLAGS, GameStage } from '../utils/gameTypes';
 import { devLog } from '../utils/devMode';
 
+/**
+ * Props for GameOfStrifeBoard component
+ */
 interface GameOfStrifeBoardProps {
+  /** 2D array of Cell objects representing the game board */
   board: Cell[][];
+  /** Current game stage (placement, simulation, finished, etc.) */
   stage: GameStage;
+  /** Board dimensions (N×N grid) */
   boardSize: number;
+  /** Whether the game is in placement phase */
   isPlacementStage: boolean;
+  /** Whether it's the current player's turn */
   isMyTurn: boolean;
+  /** Whether the game has finished */
   isFinished: boolean;
+  /** Callback for game actions (token placement, removal) */
   onGameAction: (action: any) => void;
+  /** Currently selected cell coordinates (optional) */
   selectedCell?: { row: number; col: number } | null;
+  /** Current player's seat assignment */
   mySeat?: 'P1' | 'P2' | null;
+  /** Whether to show animated superpower effects */
   enableSuperpowerAnimations: boolean;
 }
 
-// Create Animated Pressable component for placement stage animations
+/**
+ * Animated Pressable component for interactive cells
+ * Note: Currently unused - all touch handling done at board level for drag support
+ */
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
@@ -33,51 +63,80 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   mySeat,
   enableSuperpowerAnimations,
 }) => {
+  // Refs for board layout and touch tracking
+  /** Reference to the board View for measuring layout */
   const boardRef = useRef<View>(null);
+  /** Tracks the last placed cell to prevent duplicate placements during drag */
   const lastPlacedCell = useRef<string | null>(null);
+  /** Flag indicating if user is currently dragging their finger */
   const [isDragging, setIsDragging] = useState(false);
+  /** Stores board position and dimensions for touch coordinate conversion */
   const boardLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  /** Tracks the last touched cell position for interpolation between touch events */
   const lastTouchPosition = useRef<{ row: number; col: number } | null>(null);
 
-  // Animated values for superpower effects (shared by type for efficiency)
+  /**
+   * Animated values for superpower effects (shared by type for memory efficiency)
+   *
+   * Architecture: All cells of the same superpower type share one Animated.Value
+   * This approach:
+   * - Uses 7 values instead of 100-400 (one per cell)
+   * - Creates synchronized animations that look intentional
+   * - Scales well with board size
+   * - Reduces memory usage and animation overhead
+   */
   const animatedValues = useRef({
-    tank: new Animated.Value(0),      // Type 1
-    spreader: new Animated.Value(0),  // Type 2
-    survivor: new Animated.Value(0),  // Type 3
-    ghost: new Animated.Value(0),     // Type 4
-    replicator: new Animated.Value(0),// Type 5
-    destroyer: new Animated.Value(0), // Type 6
-    hybrid: new Animated.Value(0),    // Type 7
+    tank: new Animated.Value(0),      // Type 1: Defensive protective halo
+    spreader: new Animated.Value(0),  // Type 2: Propagation rippling waves
+    survivor: new Animated.Value(0),  // Type 3: Endurance eternal flame
+    ghost: new Animated.Value(0),     // Type 4: Ethereal phase shift
+    replicator: new Animated.Value(0),// Type 5: Multiplication mitosis burst
+    destroyer: new Animated.Value(0), // Type 6: Aggression aggressive pulse
+    hybrid: new Animated.Value(0),    // Type 7: Complex chromatic shift
   }).current;
 
-  // Animation factory - creates looping animations for each superpower type
+  /**
+   * Creates a looping animation for a specific superpower type
+   *
+   * Animation Timing Design:
+   * - All cycles are 250-700ms to complete 2+ cycles in typical 1-5s simulations
+   * - Ghost uses random duration (200-400ms) for unpredictable phasing effect
+   * - Faster cycles (250-400ms) create energetic, aggressive feel
+   * - Slower cycles (500-700ms) create steady, sophisticated feel
+   *
+   * @param type - Superpower type name ('tank', 'spreader', etc.)
+   * @param animValue - Animated.Value to animate (shared across all cells of this type)
+   * @returns Animated.CompositeAnimation that loops infinitely
+   */
   const createAnimationForType = useCallback((
     type: string,
     animValue: Animated.Value
   ): Animated.CompositeAnimation => {
+    // Animation configuration for each superpower type
     const configs: Record<string, { duration: number | (() => number); toValue: number }> = {
-      tank: { duration: 600, toValue: 1 },        // Steady protective pulse
-      spreader: { duration: 400, toValue: 1 },    // Fast spreading waves
-      survivor: { duration: 500, toValue: 1 },    // Persistent flame
+      tank: { duration: 600, toValue: 1 },        // Steady protective pulse (1-2 cycles/sec)
+      spreader: { duration: 400, toValue: 1 },    // Fast spreading waves (2-3 cycles/sec)
+      survivor: { duration: 500, toValue: 1 },    // Persistent flame (2 cycles/sec)
       ghost: {
-        // Irregular phasing - 200-400ms random
+        // Irregular phasing - random 200-400ms for unpredictable effect
         duration: () => Math.random() * 200 + 200,
         toValue: 1
       },
-      replicator: { duration: 250, toValue: 1 },  // Very fast bursts
-      destroyer: { duration: 350, toValue: 1 },   // Aggressive rapid pulse
-      hybrid: { duration: 700, toValue: 1 },      // Complex sophisticated
+      replicator: { duration: 250, toValue: 1 },  // Very fast bursts (4 cycles/sec)
+      destroyer: { duration: 350, toValue: 1 },   // Aggressive rapid pulse (2-3 cycles/sec)
+      hybrid: { duration: 700, toValue: 1 },      // Complex sophisticated (1-2 cycles/sec)
     };
 
     const config = configs[type];
     const duration = typeof config.duration === 'function' ? config.duration() : config.duration;
 
+    // Create looping animation: 0 → 1 → 0 → repeat
     return Animated.loop(
       Animated.sequence([
         Animated.timing(animValue, {
           toValue: config.toValue,
           duration: duration,
-          useNativeDriver: false, // Required for shadow properties
+          useNativeDriver: false, // Required for shadow/border properties (runs on JS thread)
         }),
         Animated.timing(animValue, {
           toValue: 0,
@@ -179,27 +238,45 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     handlePlacement(row, col);
   }, [handlePlacement]);
 
-  // Interpolate cells between two points (line drawing algorithm)
+  /**
+   * Interpolate cells between two points using Bresenham's line algorithm
+   *
+   * Problem: Touch events fire ~60 times/second, but fast finger movement can skip
+   * multiple cells between touch events, leaving gaps in drag trails.
+   *
+   * Solution: For each touch move, calculate all cells along the line from the last
+   * touch position to the current position, ensuring a continuous trail.
+   *
+   * Bresenham's algorithm efficiently finds all grid cells that a line passes through
+   * without floating point arithmetic, making it perfect for pixel-perfect grid operations.
+   *
+   * @param from - Starting cell coordinates
+   * @param to - Ending cell coordinates
+   * @returns Array of all cell coordinates along the line (inclusive)
+   */
   const interpolateCells = useCallback((from: { row: number; col: number }, to: { row: number; col: number }) => {
     const cells: { row: number; col: number }[] = [];
 
-    // Bresenham's line algorithm
+    // Bresenham's line algorithm - classic computer graphics algorithm
     let x0 = from.col;
     let y0 = from.row;
     const x1 = to.col;
     const y1 = to.row;
 
-    const dx = Math.abs(x1 - x0);
-    const dy = Math.abs(y1 - y0);
-    const sx = x0 < x1 ? 1 : -1;
-    const sy = y0 < y1 ? 1 : -1;
-    let err = dx - dy;
+    const dx = Math.abs(x1 - x0);  // Horizontal distance
+    const dy = Math.abs(y1 - y0);  // Vertical distance
+    const sx = x0 < x1 ? 1 : -1;   // Step direction X
+    const sy = y0 < y1 ? 1 : -1;   // Step direction Y
+    let err = dx - dy;             // Decision variable
 
+    // Trace line from start to end
     while (true) {
       cells.push({ row: y0, col: x0 });
 
+      // Reached destination
       if (x0 === x1 && y0 === y1) break;
 
+      // Calculate next step
       const e2 = 2 * err;
       if (e2 > -dy) {
         err -= dy;
@@ -214,7 +291,21 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     return cells;
   }, []);
 
-  // Convert touch coordinates to cell position
+  /**
+   * Convert touch screen coordinates to board cell position
+   *
+   * Process:
+   * 1. Convert absolute page coordinates to board-relative coordinates
+   * 2. Check if touch is within board bounds
+   * 3. Account for board border (2px)
+   * 4. Calculate cell size from usable board area
+   * 5. Convert coordinates to cell indices (row, col)
+   * 6. Validate cell is within grid bounds
+   *
+   * @param pageX - Absolute X coordinate from touch event (nativeEvent.pageX)
+   * @param pageY - Absolute Y coordinate from touch event (nativeEvent.pageY)
+   * @returns Cell coordinates {row, col} or null if touch is outside board
+   */
   const getCellFromTouch = useCallback((pageX: number, pageY: number): { row: number; col: number } | null => {
     if (!boardLayoutRef.current) return null;
 
@@ -236,15 +327,15 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     const cellWidth = usableWidth / boardSize;
     const cellHeight = usableHeight / boardSize;
 
-    // Adjust for border
+    // Adjust for border offset
     const adjustedX = relativeX - BOARD_BORDER;
     const adjustedY = relativeY - BOARD_BORDER;
 
-    // Calculate cell indices
+    // Calculate cell indices (0-based)
     const col = Math.floor(adjustedX / cellWidth);
     const row = Math.floor(adjustedY / cellHeight);
 
-    // Validate bounds
+    // Validate bounds (extra safety check)
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
       return { row, col };
     }
@@ -318,17 +409,35 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     });
   }, []);
 
-  // Get animated style interpolations for superpower cells
+  /**
+   * Generate animated style interpolations for superpower cells
+   *
+   * Maps Animated.Value (0→1) to various style properties based on superpower type.
+   * Each superpower has unique animation characteristics:
+   * - Shadow properties (glow effects)
+   * - Scale transforms (size pulsing)
+   * - Border width (thickness variation)
+   * - Opacity (fade in/out)
+   * - Elevation (Android shadow depth)
+   *
+   * Note: useNativeDriver cannot be used because shadow/border properties
+   * are not supported on the native animation thread - runs on JS thread instead.
+   *
+   * @param cell - Cell to generate animated styles for
+   * @returns Object containing animated style properties (or empty if not animated)
+   */
   const getAnimatedStyle = useCallback((cell: Cell) => {
+    // No animation for normal cells or dead cells
     if (cell.superpowerType === 0 || !cell.alive) {
-      return {}; // No animation for normal cells
+      return {};
     }
 
+    // Map superpower type ID to animation name
     const typeNames = ['', 'tank', 'spreader', 'survivor', 'ghost', 'replicator', 'destroyer', 'hybrid'];
     const typeName = typeNames[cell.superpowerType];
     const animValue = animatedValues[typeName as keyof typeof animatedValues];
 
-    // Return animated style object based on type
+    // Return animated style object based on superpower type
     switch (cell.superpowerType) {
       case 1: // Tank - Protective Halo
         return {

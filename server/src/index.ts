@@ -1,3 +1,26 @@
+/**
+ * Game of Strife - Mobile Backend Server
+ *
+ * Architecture:
+ * - Fastify HTTP server with Socket.IO for WebSocket communication
+ * - Room-based multiplayer with turn-based gameplay
+ * - Game of Strife engine for Conway's Game of Life simulation
+ * - In-memory storage (rooms, matches, logs)
+ *
+ * Key Components:
+ * - RoomManager: Handles room creation, joining, player management
+ * - MatchService: Manages match lifecycle, move validation, results
+ * - GameOfStrifeEngine: Conway's Life simulation with superpowers
+ *
+ * API Endpoints:
+ * - GET /health: Health check and server status
+ * - POST /logs: Upload client logs (24-hour retention)
+ * - GET /logs/:sessionId: Retrieve uploaded logs
+ *
+ * Socket.IO Namespace: /game
+ * - All real-time game events use this namespace
+ * - Clients must connect to ws://server:port/game
+ */
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import fastifySocketIO from 'fastify-socket.io'
@@ -8,26 +31,38 @@ import { GameRegistry } from './services/gameRegistry.js'
 import { ClientToServerEvents, ServerToClientEvents, Player } from './types/room.js'
 import { logger } from './utils/logger.js'
 
-// Game of Strife Mobile Backend
+// Server initialization banner
 logger.info('='.repeat(50))
 logger.info('Game of Strife - Mobile Backend')
-logger.info('ENGINE: Game of Strife (hardcoded)')
+logger.info('ENGINE: Game of Strife (Conway\'s Game of Life)')
 logger.info('='.repeat(50))
 
-// Single namespace constant
+/**
+ * Socket.IO namespace for all game communications
+ * All clients must connect to this namespace
+ */
 export const NAMESPACE = '/game'
 
-// Create global service instances
+/**
+ * Global service instances (singleton pattern)
+ * - roomManager: Room and player management
+ * - matchService: Game logic and move validation
+ */
 const roomManager = new RoomManager()
 const matchService = new MatchService() // Auto-loads GameOfStrifeEngine
 
-// Track emitted results to ensure exactly-once emission
+/**
+ * Track emitted results to prevent duplicate emissions
+ * Ensures each match result is only sent once
+ */
 const emittedResults = new Set<string>()
 
-// Configuration
+/**
+ * Server configuration from environment variables
+ */
 const PORT = parseInt(process.env.PORT || '3030', 10)
 const HOST = process.env.HOST || '0.0.0.0'
-const MATCH_MODE = process.env.MATCH_MODE || 'turn'
+const MATCH_MODE = process.env.MATCH_MODE || 'turn'  // 'turn' or 'simul' (simultaneous moves)
 
 const fastify = Fastify({
   logger: {
