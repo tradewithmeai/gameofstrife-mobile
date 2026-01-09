@@ -1,6 +1,6 @@
 // Game of Strife GameBoard for React Native
-import React, { useCallback, useState, useRef } from 'react';
-import { View, Pressable, StyleSheet, useWindowDimensions, GestureResponderEvent, Text } from 'react-native';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
+import { View, Pressable, StyleSheet, useWindowDimensions, GestureResponderEvent, Text, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Cell, MEMORY_FLAGS, GameStage } from '../utils/gameTypes';
 import { devLog } from '../utils/devMode';
@@ -15,7 +15,11 @@ interface GameOfStrifeBoardProps {
   onGameAction: (action: any) => void;
   selectedCell?: { row: number; col: number } | null;
   mySeat?: 'P1' | 'P2' | null;
+  enableSuperpowerAnimations: boolean;
 }
+
+// Create Animated Pressable component for placement stage animations
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   board,
@@ -27,9 +31,81 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   onGameAction,
   selectedCell,
   mySeat,
+  enableSuperpowerAnimations,
 }) => {
   const boardRef = useRef<View>(null);
   const lastPlacedCell = useRef<string | null>(null);
+
+  // Animated values for superpower effects (shared by type for efficiency)
+  const animatedValues = useRef({
+    tank: new Animated.Value(0),      // Type 1
+    spreader: new Animated.Value(0),  // Type 2
+    survivor: new Animated.Value(0),  // Type 3
+    ghost: new Animated.Value(0),     // Type 4
+    replicator: new Animated.Value(0),// Type 5
+    destroyer: new Animated.Value(0), // Type 6
+    hybrid: new Animated.Value(0),    // Type 7
+  }).current;
+
+  // Animation factory - creates looping animations for each superpower type
+  const createAnimationForType = useCallback((
+    type: string,
+    animValue: Animated.Value
+  ): Animated.CompositeAnimation => {
+    const configs: Record<string, { duration: number | (() => number); toValue: number }> = {
+      tank: { duration: 600, toValue: 1 },        // Steady protective pulse
+      spreader: { duration: 400, toValue: 1 },    // Fast spreading waves
+      survivor: { duration: 500, toValue: 1 },    // Persistent flame
+      ghost: {
+        // Irregular phasing - 200-400ms random
+        duration: () => Math.random() * 200 + 200,
+        toValue: 1
+      },
+      replicator: { duration: 250, toValue: 1 },  // Very fast bursts
+      destroyer: { duration: 350, toValue: 1 },   // Aggressive rapid pulse
+      hybrid: { duration: 700, toValue: 1 },      // Complex sophisticated
+    };
+
+    const config = configs[type];
+    const duration = typeof config.duration === 'function' ? config.duration() : config.duration;
+
+    return Animated.loop(
+      Animated.sequence([
+        Animated.timing(animValue, {
+          toValue: config.toValue,
+          duration: duration,
+          useNativeDriver: false, // Required for shadow properties
+        }),
+        Animated.timing(animValue, {
+          toValue: 0,
+          duration: duration,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+  }, []);
+
+  // Start/stop animations based on stage (placement and finished only)
+  useEffect(() => {
+    if (
+      (stage === 'placement' || stage === 'finished') &&
+      enableSuperpowerAnimations &&
+      boardSize <= 20
+    ) {
+      // Start all 7 animations in parallel
+      const animations = Object.entries(animatedValues).map(
+        ([type, value]) => createAnimationForType(type, value)
+      );
+
+      animations.forEach(anim => anim.start());
+
+      return () => {
+        // Cleanup: stop all animations and reset values
+        animations.forEach(anim => anim.stop());
+        Object.values(animatedValues).forEach(v => v.setValue(0));
+      };
+    }
+  }, [stage, enableSuperpowerAnimations, boardSize, animatedValues, createAnimationForType]);
 
   // Component uses per-cell Pressable approach for touch handling
 
@@ -99,6 +175,152 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     lastPlacedCell.current = null; // Reset for new placement
     handlePlacement(row, col);
   }, [handlePlacement]);
+
+  // Get animated style interpolations for superpower cells
+  const getAnimatedStyle = useCallback((cell: Cell) => {
+    if (cell.superpowerType === 0 || !cell.alive) {
+      return {}; // No animation for normal cells
+    }
+
+    const typeNames = ['', 'tank', 'spreader', 'survivor', 'ghost', 'replicator', 'destroyer', 'hybrid'];
+    const typeName = typeNames[cell.superpowerType];
+    const animValue = animatedValues[typeName as keyof typeof animatedValues];
+
+    // Return animated style object based on type
+    switch (cell.superpowerType) {
+      case 1: // Tank - Protective Halo
+        return {
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [2, 8],
+          }),
+          shadowOpacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.6, 0.9],
+          }),
+          shadowColor: '#FFFFFF',
+          elevation: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [4, 8],
+          }),
+        };
+
+      case 2: // Spreader - Rippling Waves
+        return {
+          transform: [{
+            scale: animValue.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1.0, 1.08],
+            }),
+          }],
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 6],
+          }),
+          shadowOpacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.8],
+          }),
+          shadowColor: '#00F5FF',
+        };
+
+      case 3: // Survivor - Eternal Flame
+        return {
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [4, 10],
+          }),
+          shadowOpacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.7, 1.0],
+          }),
+          shadowColor: '#FFFF00',
+          elevation: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [4, 7],
+          }),
+        };
+
+      case 4: // Ghost - Phase Shift
+        return {
+          opacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.2, 0.8],
+          }),
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [2, 5],
+          }),
+          shadowColor: '#FF10F0',
+        };
+
+      case 5: // Replicator - Mitosis Burst
+        return {
+          transform: [{
+            scale: animValue.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1.0, 1.15],
+            }),
+          }],
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 5],
+          }),
+          shadowOpacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.9],
+          }),
+          shadowColor: '#FF6600',
+        };
+
+      case 6: // Destroyer - Aggressive Pulse
+        return {
+          borderWidth: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3.5, 5.5],
+          }),
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3, 8],
+          }),
+          shadowOpacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.8, 1.0],
+          }),
+          shadowColor: '#FF0000',
+          elevation: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [5, 9],
+          }),
+        };
+
+      case 7: // Hybrid - Chromatic Shift
+        return {
+          shadowRadius: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3, 7],
+          }),
+          shadowOpacity: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0.6, 0.95],
+          }),
+          shadowColor: '#B026FF',
+          transform: [{
+            scale: animValue.interpolate({
+              inputRange: [0, 1],
+              outputRange: [1.0, 1.04],
+            }),
+          }],
+          elevation: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [3, 6],
+          }),
+        };
+
+      default:
+        return {};
+    }
+  }, [animatedValues]);
 
   const getSuperpowerStyle = (superpowerType: number) => {
     switch (superpowerType) {
@@ -222,38 +444,42 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
         {board.map((row, rowIndex) => (
           <View key={`row-${rowIndex}`} style={styles.row}>
             {row.map((cell, colIndex) => {
-              const cellStyle = [
+              const baseCellStyle = [
                 ...getCellStyle(cell),
                 selectedCell?.row === rowIndex && selectedCell?.col === colIndex && styles.cellSelected,
                 { width: finalCellSize, height: finalCellSize }
               ];
 
-              // During simulation/finished: use plain View (no touch overhead)
-              // During placement: use Pressable (touchable)
+              // Get animated styles for superpower cells
+              const animatedStyle = getAnimatedStyle(cell);
+
+              // During simulation/finished: use Animated.View with animations
+              // During placement: use AnimatedPressable (touchable + animated)
               if (stage === 'simulation' || stage === 'finished') {
                 return (
-                  <View
+                  <Animated.View
                     key={`${rowIndex}-${colIndex}`}
-                    style={cellStyle}
+                    style={[baseCellStyle, animatedStyle]}
                   >
                     {cell.alive && (
                       <Text style={styles.livesText}>{cell.lives}</Text>
                     )}
-                  </View>
+                  </Animated.View>
                 );
               }
 
+              // Use AnimatedPressable with combined styles
               return (
-                <Pressable
+                <AnimatedPressable
                   key={`${rowIndex}-${colIndex}`}
                   onPress={() => handleCellPress(rowIndex, colIndex)}
                   disabled={!isPlacementStage || !isMyTurn}
-                  style={cellStyle}
+                  style={[baseCellStyle, animatedStyle]}
                 >
                   {cell.alive && (
                     <Text style={styles.livesText}>{cell.lives}</Text>
                   )}
-                </Pressable>
+                </AnimatedPressable>
               );
             })}
           </View>
@@ -301,9 +527,14 @@ const styles = StyleSheet.create({
   },
   // Superpower visual effects - Distinctive borders and patterns
   superpowerTank: {
-    borderWidth: 3,
+    borderWidth: 4, // Thickest border for maximum defense
     borderColor: '#FFFFFF', // Thick white border (defensive)
     borderStyle: 'solid',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 2,
+    elevation: 4,
   },
   superpowerSpreader: {
     borderWidth: 2.5,
@@ -321,10 +552,15 @@ const styles = StyleSheet.create({
     elevation: 4, // Android shadow
   },
   superpowerGhost: {
-    opacity: 0.7, // Semi-transparent (ethereal)
+    opacity: 0.5, // Semi-transparent base for ethereal phasing
     borderWidth: 2,
     borderColor: '#C084FC', // Purple border
     borderStyle: 'dashed',
+    shadowColor: '#FF10F0',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
+    elevation: 2,
   },
   superpowerReplicator: {
     borderWidth: 2.5,
@@ -332,9 +568,14 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   superpowerDestroyer: {
-    borderWidth: 3.5,
+    borderWidth: 3.5, // Matches animation starting point
     borderColor: '#EF4444', // Thick red border (aggressive)
     borderStyle: 'solid',
+    shadowColor: '#FF0000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
+    elevation: 5,
   },
   superpowerHybrid: {
     borderWidth: 3,

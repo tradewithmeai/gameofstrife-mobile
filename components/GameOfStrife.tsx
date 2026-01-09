@@ -58,6 +58,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   const enabledSuperpowers = useSettingsStore(state => state.settings.enabledSuperpowers);
   const superpowerPercentage = useSettingsStore(state => state.settings.superpowerPercentage);
   const superpowerLives = useSettingsStore(state => state.settings.superpowerLives);
+  const enableSuperpowerAnimations = useSettingsStore(state => state.settings.enableSuperpowerAnimations);
   const frameInterval = animationSpeed; // Direct milliseconds per frame
 
   // Simulation state
@@ -66,6 +67,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationComplete, setSimulationComplete] = useState(false);
   const [finalScores, setFinalScores] = useState<{player0: number, player1: number} | null>(null);
+  const [simulationStartTime, setSimulationStartTime] = useState<number | null>(null);
+  const [simulationDuration, setSimulationDuration] = useState<number>(0);
   const simulationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasStartedSimulation = useRef(false);
   const placementBoardRef = useRef<Cell[][] | null>(null);
@@ -167,6 +170,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       if (DEV_MODE) console.log('[GameOfStrife] Starting simulation animation from placement board!');
       hasStartedSimulation.current = true;
       setIsSimulating(true);
+      setSimulationStartTime(Date.now());
+      setSimulationDuration(0);
 
       // PRE-CALCULATE ALL GENERATIONS (fast, runs in <100ms even on large boards)
       if (DEV_MODE) console.log('[GameOfStrife] Pre-calculating all generations...');
@@ -228,6 +233,15 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           };
           if (DEV_MODE) console.log(`[GameOfStrife] Simulation complete! Final: P1=${scores.player0}, P2=${scores.player1}`);
           setFinalScores(scores);
+
+          // Calculate and store simulation duration
+          if (simulationStartTime) {
+            const endTime = Date.now();
+            const duration = (endTime - simulationStartTime) / 1000; // Convert to seconds
+            setSimulationDuration(duration);
+            if (DEV_MODE) console.log(`[GameOfStrife] Simulation duration: ${duration.toFixed(2)}s`);
+          }
+
           setIsSimulating(false);
           setSimulationComplete(true);
         }
@@ -257,6 +271,8 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
       setSimulationBoard(null);
       setSimulationGeneration(0);
       setFinalScores(null);
+      setSimulationStartTime(null);
+      setSimulationDuration(0);
     }
   }, [matchState?.id]);
 
@@ -419,6 +435,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
           isFinished={isFinished}
           onGameAction={handleGameAction}
           mySeat={mySeat}
+          enableSuperpowerAnimations={enableSuperpowerAnimations}
         />
 
         {/* Additional Game Info */}
@@ -431,6 +448,11 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
               <Text variant="bodySmall" style={styles.textPurpleLight}>
                 Generation {displayGeneration}
               </Text>
+              {simulationStartTime && (
+                <Text variant="bodySmall" style={styles.textPurpleLight}>
+                  Elapsed: {((Date.now() - simulationStartTime) / 1000).toFixed(1)}s
+                </Text>
+              )}
             </Card.Content>
           </Card>
         )}
@@ -527,9 +549,14 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
                 </>
               )}
 
-              <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
+              <Text variant="bodySmall" style={[styles.textGray, styles.centerText]}>
                 Simulation ran for {generationsRef.current.length - 1} generations
               </Text>
+              {simulationDuration > 0 && (
+                <Text variant="bodySmall" style={[styles.textGray, styles.centerText, styles.marginBottom]}>
+                  Duration: {simulationDuration.toFixed(2)}s
+                </Text>
+              )}
 
               {/* Rematch Status Indicator */}
               {rematchPending && rematchRequesterSeat && (
@@ -554,6 +581,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
                     setSimulationComplete(false);
                     setIsSimulating(true);
                     setCurrentGenerationIndex(0);
+                    const replayStartTime = Date.now();
 
                     let frameIndex = 0;
                     const animateNextFrame = () => {
@@ -562,6 +590,10 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
                         setCurrentGenerationIndex(frameIndex);
                         simulationTimerRef.current = setTimeout(animateNextFrame, frameInterval);
                       } else {
+                        // Calculate replay duration
+                        const replayEndTime = Date.now();
+                        const replayDuration = (replayEndTime - replayStartTime) / 1000;
+                        setSimulationDuration(replayDuration);
                         setIsSimulating(false);
                         setSimulationComplete(true);
                       }
