@@ -36,6 +36,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const boardRef = useRef<View>(null);
   const lastPlacedCell = useRef<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const boardLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
   // Animated values for superpower effects (shared by type for efficiency)
   const animatedValues = useRef({
@@ -177,29 +178,83 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     handlePlacement(row, col);
   }, [handlePlacement]);
 
-  // Handle drag start - when finger first touches a cell
-  const handleDragStart = useCallback((row: number, col: number) => {
+  // Convert touch coordinates to cell position
+  const getCellFromTouch = useCallback((pageX: number, pageY: number): { row: number; col: number } | null => {
+    if (!boardLayoutRef.current) return null;
+
+    const { x: boardX, y: boardY, width, height } = boardLayoutRef.current;
+
+    // Convert page coordinates to board-relative coordinates
+    const relativeX = pageX - boardX;
+    const relativeY = pageY - boardY;
+
+    // Check if touch is within board bounds
+    if (relativeX < 0 || relativeX > width || relativeY < 0 || relativeY > height) {
+      return null;
+    }
+
+    // Calculate cell size (accounting for borders)
+    const BOARD_BORDER = 2;
+    const usableWidth = width - (BOARD_BORDER * 2);
+    const usableHeight = height - (BOARD_BORDER * 2);
+    const cellWidth = usableWidth / boardSize;
+    const cellHeight = usableHeight / boardSize;
+
+    // Adjust for border
+    const adjustedX = relativeX - BOARD_BORDER;
+    const adjustedY = relativeY - BOARD_BORDER;
+
+    // Calculate cell indices
+    const col = Math.floor(adjustedX / cellWidth);
+    const row = Math.floor(adjustedY / cellHeight);
+
+    // Validate bounds
+    if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
+      return { row, col };
+    }
+
+    return null;
+  }, [boardSize]);
+
+  // Handle touch start - begin drag
+  const handleTouchStart = useCallback((e: GestureResponderEvent) => {
     if (!isPlacementStage || !isMyTurn || isFinished) return;
 
-    console.log('[GameBoard] Drag started:', { row, col });
     setIsDragging(true);
-    lastPlacedCell.current = null; // Reset for new drag
-    handlePlacement(row, col);
-  }, [isPlacementStage, isMyTurn, isFinished, handlePlacement]);
+    lastPlacedCell.current = null;
 
-  // Handle drag over cell - when finger moves over a cell while dragging
-  const handleDragOver = useCallback((row: number, col: number) => {
+    // Place token at starting position
+    const cell = getCellFromTouch(e.nativeEvent.pageX, e.nativeEvent.pageY);
+    if (cell) {
+      console.log('[GameBoard] Touch start at cell:', cell);
+      handlePlacement(cell.row, cell.col);
+    }
+  }, [isPlacementStage, isMyTurn, isFinished, getCellFromTouch, handlePlacement]);
+
+  // Handle touch move - drag across cells
+  const handleTouchMove = useCallback((e: GestureResponderEvent) => {
     if (!isDragging || !isPlacementStage || !isMyTurn || isFinished) return;
 
-    console.log('[GameBoard] Drag over:', { row, col });
-    handlePlacement(row, col);
-  }, [isDragging, isPlacementStage, isMyTurn, isFinished, handlePlacement]);
+    const cell = getCellFromTouch(e.nativeEvent.pageX, e.nativeEvent.pageY);
+    if (cell) {
+      console.log('[GameBoard] Touch move over cell:', cell);
+      handlePlacement(cell.row, cell.col);
+    }
+  }, [isDragging, isPlacementStage, isMyTurn, isFinished, getCellFromTouch, handlePlacement]);
 
-  // Handle drag end - when finger lifts
-  const handleDragEnd = useCallback(() => {
-    console.log('[GameBoard] Drag ended');
+  // Handle touch end - stop drag
+  const handleTouchEnd = useCallback(() => {
+    console.log('[GameBoard] Touch ended');
     setIsDragging(false);
     lastPlacedCell.current = null;
+  }, []);
+
+  // Measure board layout
+  const handleBoardLayout = useCallback(() => {
+    boardRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      boardLayoutRef.current = { x: pageX, y: pageY, width, height };
+      console.log('[GameBoard] Board layout:', { x: pageX, y: pageY, width, height });
+    });
   }, []);
 
   // Get animated style interpolations for superpower cells
@@ -459,6 +514,13 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     <View style={styles.container}>
       <View
         ref={boardRef}
+        onLayout={handleBoardLayout}
+        onStartShouldSetResponder={() => isPlacementStage && isMyTurn && !isFinished}
+        onMoveShouldSetResponder={() => isPlacementStage && isMyTurn && !isFinished}
+        onResponderGrant={handleTouchStart}
+        onResponderMove={handleTouchMove}
+        onResponderRelease={handleTouchEnd}
+        onResponderTerminate={handleTouchEnd}
         style={[
           styles.board,
           {
@@ -494,14 +556,11 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
                 );
               }
 
-              // Use AnimatedPressable with drag support
+              // Use AnimatedPressable (drag handled at board level)
               return (
                 <AnimatedPressable
                   key={`${rowIndex}-${colIndex}`}
                   onPress={() => handleCellPress(rowIndex, colIndex)}
-                  onPressIn={() => handleDragStart(rowIndex, colIndex)}
-                  onTouchEnd={handleDragEnd}
-                  onHoverIn={() => handleDragOver(rowIndex, colIndex)}
                   disabled={!isPlacementStage || !isMyTurn}
                   style={[baseCellStyle, animatedStyle]}
                 >
