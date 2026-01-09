@@ -37,6 +37,7 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
   const lastPlacedCell = useRef<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const boardLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const lastTouchPosition = useRef<{ row: number; col: number } | null>(null);
 
   // Animated values for superpower effects (shared by type for efficiency)
   const animatedValues = useRef({
@@ -178,6 +179,41 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     handlePlacement(row, col);
   }, [handlePlacement]);
 
+  // Interpolate cells between two points (line drawing algorithm)
+  const interpolateCells = useCallback((from: { row: number; col: number }, to: { row: number; col: number }) => {
+    const cells: { row: number; col: number }[] = [];
+
+    // Bresenham's line algorithm
+    let x0 = from.col;
+    let y0 = from.row;
+    const x1 = to.col;
+    const y1 = to.row;
+
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+
+    while (true) {
+      cells.push({ row: y0, col: x0 });
+
+      if (x0 === x1 && y0 === y1) break;
+
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        x0 += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        y0 += sy;
+      }
+    }
+
+    return cells;
+  }, []);
+
   // Convert touch coordinates to cell position
   const getCellFromTouch = useCallback((pageX: number, pageY: number): { row: number; col: number } | null => {
     if (!boardLayoutRef.current) return null;
@@ -234,28 +270,44 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
     console.log('[GameBoard] Touch start calculated cell:', cell);
     if (cell) {
       console.log('[GameBoard] ✅ Placing token at cell:', cell);
+      lastTouchPosition.current = cell;
       handlePlacement(cell.row, cell.col);
     } else {
       console.log('[GameBoard] ❌ No valid cell for touch position');
+      lastTouchPosition.current = null;
     }
   }, [isPlacementStage, isMyTurn, isFinished, getCellFromTouch, handlePlacement]);
 
-  // Handle touch move - drag across cells
+  // Handle touch move - drag across cells with interpolation
   const handleTouchMove = useCallback((e: GestureResponderEvent) => {
     if (!isDragging || !isPlacementStage || !isMyTurn || isFinished) return;
 
-    const cell = getCellFromTouch(e.nativeEvent.pageX, e.nativeEvent.pageY);
-    if (cell) {
-      console.log('[GameBoard] Touch move over cell:', cell);
-      handlePlacement(cell.row, cell.col);
+    const currentCell = getCellFromTouch(e.nativeEvent.pageX, e.nativeEvent.pageY);
+    if (!currentCell) return;
+
+    // If we have a previous position, interpolate between them
+    if (lastTouchPosition.current) {
+      const interpolatedCells = interpolateCells(lastTouchPosition.current, currentCell);
+      console.log(`[GameBoard] Interpolating ${interpolatedCells.length} cells from`, lastTouchPosition.current, 'to', currentCell);
+
+      // Place tokens on all cells along the line
+      interpolatedCells.forEach(cell => {
+        handlePlacement(cell.row, cell.col);
+      });
+    } else {
+      // No previous position, just place at current
+      handlePlacement(currentCell.row, currentCell.col);
     }
-  }, [isDragging, isPlacementStage, isMyTurn, isFinished, getCellFromTouch, handlePlacement]);
+
+    lastTouchPosition.current = currentCell;
+  }, [isDragging, isPlacementStage, isMyTurn, isFinished, getCellFromTouch, interpolateCells, handlePlacement]);
 
   // Handle touch end - stop drag
   const handleTouchEnd = useCallback(() => {
     console.log('[GameBoard] Touch ended');
     setIsDragging(false);
     lastPlacedCell.current = null;
+    lastTouchPosition.current = null;
   }, []);
 
   // Measure board layout
@@ -529,9 +581,19 @@ export const GameOfStrifeBoard: React.FC<GameOfStrifeBoardProps> = ({
           console.log('[GameBoard] onStartShouldSetResponder:', shouldSet, { isPlacementStage, isMyTurn, isFinished });
           return shouldSet;
         }}
+        onStartShouldSetResponderCapture={() => {
+          // Capture gestures more aggressively to prevent ScrollView from stealing them
+          const shouldCapture = isPlacementStage && isMyTurn && !isFinished;
+          console.log('[GameBoard] onStartShouldSetResponderCapture:', shouldCapture);
+          return shouldCapture;
+        }}
         onMoveShouldSetResponder={() => {
           const shouldSet = isPlacementStage && isMyTurn && !isFinished;
           return shouldSet;
+        }}
+        onMoveShouldSetResponderCapture={() => {
+          // Keep capturing during move to maintain gesture ownership
+          return isPlacementStage && isMyTurn && !isFinished;
         }}
         onResponderGrant={handleTouchStart}
         onResponderMove={handleTouchMove}

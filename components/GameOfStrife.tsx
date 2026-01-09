@@ -399,6 +399,7 @@ export const GameOfStrife: React.FC<GameOfStrifeProps> = ({
     <ScrollView
       style={styles.scrollContainer}
       contentContainerStyle={styles.scrollContent}
+      scrollEnabled={!isPlacementStage}
     >
       <View style={styles.container}>
         {/* Game HUD */}
